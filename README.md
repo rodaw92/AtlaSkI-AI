@@ -38,7 +38,7 @@ The system includes an Autonomous Adaptive Intelligence Cycle (AAIC) that contin
 ### Running the Application
 
 ```bash
-cd atlasky
+cd atlasky-ai
 streamlit run app.py
 ```
 
