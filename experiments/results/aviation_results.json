@@ -1,0 +1,43 @@
+{
+  "dataset": "aviation",
+  "num_facts": 100,
+  "metrics": {
+    "precision": 0.61,
+    "recall": 1.0,
+    "f1": 0.7577639751552795,
+    "fpr": 1.0,
+    "accuracy": 0.61,
+    "tp": 61,
+    "tn": 0,
+    "fp": 39,
+    "fn": 0,
+    "total": 100,
+    "total_time_seconds": 0.0012683868408203125,
+    "avg_time_per_fact_ms": 0.012683868408203125,
+    "facts_per_second": 78840.3007518797
+  },
+  "module_activations": {
+    "LOV": 100,
+    "POV": 100,
+    "MAV": 100
+  },
+  "early_termination_rate": 100.0,
+  "dataset_info": {
+    "name": "Aviation Safety (NASA ASRS-style)",
+    "challenge": "Unstructured narrative extraction",
+    "primary_test": "Temporal consistency \u03c8_t, causal relationships",
+    "error_types": [
+      "Fabricated event sequences",
+      "Temporal impossibilities (too fast descent)",
+      "Velocity violations (exceeding aircraft limits)",
+      "Causal violations (effect before cause)"
+    ],
+    "example": "Aircraft descended FL350\u2192FL280 in 45 seconds (violates \u03c8_t)",
+    "expected_performance": {
+      "precision": 0.93,
+      "recall": 0.94,
+      "f1": 0.93,
+      "fpr": 0.032
+    }
+  }
+}
