@@ -39,6 +39,28 @@ MEASUREMENT_IDS = [
 
 SURFACE_SIDES = ["Structural", "Pressure", "Suction", "Tip", "Root"]
 
+# Physical consistency parameters (from Definition 2 & 3 in preliminaries)
+# Temporal resolution (seconds) - minimum time window for distinguishing events
+TAU_RES = 1.0  # 1 second temporal resolution
+
+# Spatial resolution (meters) - minimum distinguishable distance
+SIGMA_RES = 0.1  # 0.1 meters spatial resolution
+
+# Maximum velocities for different transport modes (m/s)
+V_MAX = {
+    "manual": 2.0,        # Manual handling: 2 m/s
+    "forklift": 5.0,      # Forklift: 5 m/s
+    "conveyor": 1.0,      # Automated conveyor: 1 m/s
+    "drone": 15.0,        # Drone delivery: 15 m/s
+    "default": 2.0        # Default to manual handling
+}
+
+# Semantic drift threshold (from Definition 6)
+THETA_DRIFT = 0.15  # KL divergence threshold for detecting semantic drift
+
+# Review margin for three-way decision
+EPSILON_REVIEW = 0.1  # Uncertainty margin for borderline cases
+
 # Mapping of quality levels to colors for visualization
 QUALITY_COLOR_MAP = {
     "high_quality": "#10b981",  # Green
