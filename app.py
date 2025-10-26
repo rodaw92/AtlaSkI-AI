@@ -248,13 +248,415 @@ def main():
     # ----- Main Content Area -----
     
     # Create tabs for different views
-    tab_verification, tab_aaic, tab_parameters, tab_history = st.tabs([
-        "💠 Verification Process", 
-        "🔄 AAIC Monitoring", 
+    tab_methodology, tab_verification, tab_experiments, tab_aaic, tab_parameters, tab_history = st.tabs([
+        "📚 Methodology",
+        "💠 Verification Process",
+        "🧪 Experimental Evaluation",
+        "🔄 AAIC Monitoring",
         "📊 Parameter Evolution",
         "📜 Verification History"
     ])
-    
+
+    with tab_methodology:  # Methodology Tab
+        st.markdown("## ATLASky-AI Methodology")
+
+        # Introduction
+        st.markdown(
+            """
+            <div class="card">
+                <h3>4D Spatiotemporal Knowledge Graph Verification</h3>
+                <p>
+                    ATLASky-AI is a novel verification system for 4D Spatiotemporal Knowledge Graphs (STKGs)
+                    that combines physics-based constraints with multi-agent verification to detect and prevent:
+                </p>
+                <ul>
+                    <li><strong>Content Hallucination</strong>: Fabricated facts not grounded in reality</li>
+                    <li><strong>ST-Inconsistency</strong>: Violations of physical laws (spatial/temporal)</li>
+                    <li><strong>Semantic Drift</strong>: Facts that deviate from domain ontology</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # STKG Formalization
+        st.markdown("### STKG Formalization")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4>Definition 1: 4D STKG</h4>
+                    <p>A 4D Spatiotemporal Knowledge Graph is a tuple:</p>
+                    <p style="text-align: center; font-size: 1.2rem; color: #3b82f6; font-weight: 600;">
+                        G = (V, E, O, T, Ψ)
+                    </p>
+                    <ul>
+                        <li><strong>V</strong>: Versioned entities with immutable attributes and mutable state</li>
+                        <li><strong>E</strong>: Directed edges representing relationships</li>
+                        <li><strong>O = (C, R<sub>o</sub>, A)</strong>: Domain ontology
+                            <ul style="margin-top: 5px;">
+                                <li>C: Entity classes</li>
+                                <li>R<sub>o</sub>: Relation types</li>
+                                <li>A: Attributes</li>
+                            </ul>
+                        </li>
+                        <li><strong>T: (V ∪ E) → ℝ³ × ℝ</strong>: Maps to (x,y,z,t) coordinates</li>
+                        <li><strong>Ψ: (V ∪ E) → {0,1}</strong>: Physical consistency predicate</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with col2:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4>Current Knowledge Graph</h4>
+                    <p style="margin-bottom: 10px;">Your active STKG contains:</p>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex: 1; background-color: #eff6ff; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 2rem; font-weight: 600; color: #3b82f6; text-align: center;">
+                                {entities}
+                            </div>
+                            <div style="text-align: center; color: #6b7280;">Entities (V)</div>
+                        </div>
+                        <div style="flex: 1; background-color: #f0fdf4; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 2rem; font-weight: 600; color: #10b981; text-align: center;">
+                                {relationships}
+                            </div>
+                            <div style="text-align: center; color: #6b7280;">Relationships (E)</div>
+                        </div>
+                    </div>
+                    <div style="background-color: #fef3c7; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <div style="font-size: 1.5rem; font-weight: 600; color: #f59e0b; text-align: center;">
+                            {classes}
+                        </div>
+                        <div style="text-align: center; color: #6b7280;">Entity Classes (C)</div>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin: 0;">
+                        All facts are mapped to spatiotemporal coordinates and verified using physics predicates.
+                    </p>
+                </div>
+                """.format(
+                    entities=len(st.session_state.kg.entities),
+                    relationships=len(st.session_state.kg.relationships),
+                    classes=len(ENTITY_CLASSES)
+                ),
+                unsafe_allow_html=True
+            )
+
+        # Physics Predicates
+        st.markdown("### Physics-Based Consistency Predicates")
+
+        pred_col1, pred_col2, pred_col3 = st.columns(3)
+
+        with pred_col1:
+            st.markdown(
+                """
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h4 style="color: white;">ψ<sub>s</sub>: Spatial Consistency</h4>
+                    <p style="margin-bottom: 10px; font-size: 0.95rem;">
+                        <strong>Definition 2:</strong> Prevents co-location violations
+                    </p>
+                    <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <code style="color: white; font-size: 0.85rem;">
+                            ∀d₁,d₂ ∈ D: (e₁=e₂) ∧ (|t₂-t₁| < τ_res)<br>
+                            → dist(ℓ₁,ℓ₂) ≤ σ_res
+                        </code>
+                    </div>
+                    <p style="font-size: 0.9rem; margin: 0;">
+                        <strong>Checks:</strong> Same entity cannot be at two locations simultaneously
+                    </p>
+                    <p style="font-size: 0.85rem; margin-top: 5px; opacity: 0.9;">
+                        σ_res = {sigma} meters
+                    </p>
+                </div>
+                """.format(sigma=st.session_state.kg.sigma_res),
+                unsafe_allow_html=True
+            )
+
+        with pred_col2:
+            st.markdown(
+                """
+                <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <h4 style="color: white;">ψ<sub>t</sub>: Temporal Consistency</h4>
+                    <p style="margin-bottom: 10px; font-size: 0.95rem;">
+                        <strong>Definition 3:</strong> Enforces velocity constraints
+                    </p>
+                    <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <code style="color: white; font-size: 0.85rem;">
+                            ∀d₁,d₂ ∈ D: (e₁=e₂) ∧ (t₂>t₁)<br>
+                            → |t₂-t₁| ≥ dist(ℓ₁,ℓ₂)/v_max
+                        </code>
+                    </div>
+                    <p style="font-size: 0.9rem; margin: 0;">
+                        <strong>Checks:</strong> Travel time must be physically feasible
+                    </p>
+                    <p style="font-size: 0.85rem; margin-top: 5px; opacity: 0.9;">
+                        v_max = 2-15 m/s (mode-dependent)
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with pred_col3:
+            st.markdown(
+                """
+                <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <h4 style="color: white;">Ψ: Combined Predicate</h4>
+                    <p style="margin-bottom: 10px; font-size: 0.95rem;">
+                        <strong>Master Consistency:</strong> Both spatial and temporal
+                    </p>
+                    <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <code style="color: white; font-size: 0.85rem;">
+                            Ψ(d) = ψ<sub>s</sub>(d) ∧ ψ<sub>t</sub>(d)
+                        </code>
+                    </div>
+                    <p style="font-size: 0.9rem; margin: 0;">
+                        <strong>Result:</strong> 1 if physically consistent, 0 otherwise
+                    </p>
+                    <p style="font-size: 0.85rem; margin-top: 5px; opacity: 0.9;">
+                        Used by MAV module
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Error Taxonomy
+        st.markdown("### Error Taxonomy")
+
+        error_col1, error_col2, error_col3 = st.columns(3)
+
+        with error_col1:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #ef4444;">Content Hallucination</h4>
+                    <p><strong>Definition 4:</strong> Fabricated facts not in source data</p>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 10px;">
+                        Facts that cannot be traced back to authoritative sources.
+                    </p>
+                    <div style="background-color: #fee2e2; padding: 8px; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.85rem;"><strong>Example:</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem;">
+                            "Blade B500 measured at 0.05mm" when no such measurement exists
+                        </p>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">
+                        <strong>Detected by:</strong> External Source Verification (ESV)
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with error_col2:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #f59e0b;">ST-Inconsistency</h4>
+                    <p><strong>Definition 5:</strong> Violations of physical laws</p>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 10px;">
+                        Facts that violate spatial (ψ<sub>s</sub>) or temporal (ψ<sub>t</sub>) consistency.
+                    </p>
+                    <div style="background-color: #fef3c7; padding: 8px; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.85rem;"><strong>Example:</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem;">
+                            Blade at two locations within 1 second (violates ψ<sub>s</sub>)
+                        </p>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">
+                        <strong>Detected by:</strong> Motion-Aware Verification (MAV)
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with error_col3:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #8b5cf6;">Semantic Drift</h4>
+                    <p><strong>Definition 6:</strong> Deviation from domain ontology</p>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 10px;">
+                        Facts that don't conform to expected entity classes, relationships, or attributes.
+                    </p>
+                    <div style="background-color: #f3e8ff; padding: 8px; border-radius: 5px;">
+                        <p style="margin: 0; font-size: 0.85rem;"><strong>Example:</strong></p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem;">
+                            Invalid relationship type or out-of-range attribute values
+                        </p>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9rem;">
+                        <strong>Detected by:</strong> Local Ontology Verification (LOV)
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Verification Modules
+        st.markdown("### Five-Module Verification Pipeline")
+
+        st.markdown(
+            """
+            <div class="card">
+                <p style="margin-bottom: 15px;">
+                    ATLASky-AI uses five specialized verification modules that can terminate early
+                    when sufficient confidence is achieved, improving efficiency while maintaining accuracy.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        module_cols = st.columns(5)
+
+        modules_info = [
+            {
+                "name": "LOV",
+                "full_name": "Local Ontology Verification",
+                "color": "#3b82f6",
+                "targets": "Semantic Drift",
+                "metrics": ["Structural Compliance", "Attribute Compliance"],
+                "icon": "📚"
+            },
+            {
+                "name": "POV",
+                "full_name": "Provenance-Aware Verification",
+                "color": "#10b981",
+                "targets": "Content Hallucination",
+                "metrics": ["Lineage Tracing", "Dependency Validation"],
+                "icon": "🔍"
+            },
+            {
+                "name": "MAV",
+                "full_name": "Motion-Aware Verification",
+                "color": "#f59e0b",
+                "targets": "ST-Inconsistency",
+                "metrics": ["Temporal-Spatial Validity (ψ<sub>s</sub>, ψ<sub>t</sub>)", "Physical Feasibility"],
+                "icon": "⚡"
+            },
+            {
+                "name": "WSV",
+                "full_name": "Workflow State Verification",
+                "color": "#8b5cf6",
+                "targets": "Content Hallucination",
+                "metrics": ["State Transition Validity", "Workflow Compliance"],
+                "icon": "🔄"
+            },
+            {
+                "name": "ESV",
+                "full_name": "External Source Verification",
+                "color": "#ef4444",
+                "targets": "Content Hallucination",
+                "metrics": ["Source Authority", "Cross-Reference Validity"],
+                "icon": "🌐"
+            }
+        ]
+
+        for col, module_info in zip(module_cols, modules_info):
+            with col:
+                st.markdown(
+                    f"""
+                    <div class="card" style="border-left: 4px solid {module_info['color']}; min-height: 280px;">
+                        <div style="text-align: center; font-size: 2rem; margin-bottom: 10px;">
+                            {module_info['icon']}
+                        </div>
+                        <h4 style="color: {module_info['color']}; text-align: center; margin-bottom: 5px;">
+                            {module_info['name']}
+                        </h4>
+                        <p style="font-size: 0.75rem; text-align: center; color: #6b7280; margin-bottom: 10px;">
+                            {module_info['full_name']}
+                        </p>
+                        <div style="background-color: #f9fafb; padding: 8px; border-radius: 5px; margin-bottom: 10px;">
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Targets:</strong></p>
+                            <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: {module_info['color']};">
+                                {module_info['targets']}
+                            </p>
+                        </div>
+                        <p style="margin: 0; font-size: 0.75rem;"><strong>Metrics:</strong></p>
+                        <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.75rem;">
+                            {''.join([f'<li>{metric}</li>' for metric in module_info['metrics']])}
+                        </ul>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+        # AAIC Adaptation
+        st.markdown("### Autonomous Adaptive Intelligence Cycle (AAIC)")
+
+        aaic_col1, aaic_col2 = st.columns([1, 1])
+
+        with aaic_col1:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4>CGR-CUSUM Performance Monitoring</h4>
+                    <p style="font-size: 0.9rem; margin-bottom: 10px;">
+                        AAIC uses the CGR-CUSUM algorithm to detect performance shifts in real-time:
+                    </p>
+                    <div style="background-color: #eff6ff; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <code style="font-size: 0.85rem;">
+                            G<sub>i</sub>(n) = max(0, G<sub>i</sub>(n-1) + L<sub>i</sub>(n) - k)
+                        </code>
+                    </div>
+                    <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 10px;">
+                        When G<sub>i</sub>(n) > h, a performance shift is detected and parameters are updated.
+                    </p>
+                    <ul style="font-size: 0.85rem;">
+                        <li><strong>h</strong>: Detection threshold (default: {h})</li>
+                        <li><strong>k</strong>: Allowance parameter (default: {k})</li>
+                        <li><strong>L<sub>i</sub>(n)</strong>: Log-likelihood ratio of performance</li>
+                    </ul>
+                </div>
+                """.format(h=st.session_state.aaic.h, k=st.session_state.aaic.k),
+                unsafe_allow_html=True
+            )
+
+        with aaic_col2:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4>Adaptive Parameter Updates</h4>
+                    <p style="font-size: 0.9rem; margin-bottom: 10px;">
+                        When shifts are detected, AAIC updates three key parameters:
+                    </p>
+                    <div style="margin-bottom: 8px;">
+                        <div style="background-color: #eff6ff; padding: 8px; border-radius: 5px;">
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Weight (w)</strong> - Equation 12:</p>
+                            <code style="font-size: 0.75rem;">w<sub>i</sub> ← w<sub>i</sub> × exp[-γ·G<sub>i</sub>(t)]</code>
+                            <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">γ = {gamma}</p>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <div style="background-color: #fef3c7; padding: 8px; border-radius: 5px;">
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Threshold (θ)</strong> - Equation 13:</p>
+                            <code style="font-size: 0.75rem;">θ<sub>i</sub> ← θ<sub>i</sub> + η·sign(FPR - FNR)</code>
+                            <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">η = {eta}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="background-color: #f3e8ff; padding: 8px; border-radius: 5px;">
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Alpha (α)</strong> - Equation 14:</p>
+                            <code style="font-size: 0.75rem;">α<sub>i</sub> ← α<sub>i</sub> + η'·∂L<sub>i</sub>/∂α<sub>i</sub></code>
+                            <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">η' = {eta_prime}</p>
+                        </div>
+                    </div>
+                </div>
+                """.format(gamma=st.session_state.aaic.gamma, eta=st.session_state.aaic.eta,
+                          eta_prime=st.session_state.aaic.eta_prime),
+                unsafe_allow_html=True
+            )
+
     with tab_verification:  # Verification Process Tab
         col1, col2 = st.columns([1, 1])
         
@@ -453,7 +855,401 @@ def main():
                     """,
                     unsafe_allow_html=True
                 )
-    
+
+    with tab_experiments:  # Experimental Evaluation Tab
+        st.markdown("## Experimental Evaluation")
+
+        # Introduction
+        st.markdown(
+            """
+            <div class="card">
+                <h3>Testing ATLASky-AI on Different Dataset Types</h3>
+                <p>
+                    This section demonstrates how ATLASky-AI performs on facts from different domains,
+                    each with unique characteristics and error patterns.
+                </p>
+                <p style="margin-bottom: 0;">
+                    The experimental framework measures standard metrics: <strong>Precision</strong>,
+                    <strong>Recall</strong>, <strong>F1-Score</strong>, and <strong>FPR</strong> (False Positive Rate).
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Dataset Type Selection
+        st.markdown("### Select Dataset Type")
+
+        dataset_types = {
+            "manufacturing": {
+                "name": "Manufacturing/Aerospace",
+                "icon": "🏭",
+                "color": "#3b82f6",
+                "challenge": "Micro-tolerance precision (±0.1mm)",
+                "test": "Spatial consistency ψs, measurement validation",
+                "errors": ["Hallucinated tolerance values", "Impossible measurements", "Spatial violations (ψs)"],
+                "example": "Turbine blade deviation: 0.023mm at (10.5, 20.3, 150.2)",
+                "expected": {"P": 0.94, "R": 0.91, "F1": 0.92, "FPR": 0.026}
+            },
+            "aviation": {
+                "name": "Aviation Safety",
+                "icon": "✈️",
+                "color": "#10b981",
+                "challenge": "Temporal consistency and causal relationships",
+                "test": "Temporal consistency ψt, causal reasoning",
+                "errors": ["Temporal impossibility", "Causal violations", "Velocity violations (ψt)"],
+                "example": "Aircraft descended 10,000 ft in 2 minutes at location (34.05, -118.25)",
+                "expected": {"P": 0.93, "R": 0.94, "F1": 0.93, "FPR": 0.032}
+            },
+            "cad": {
+                "name": "CAD Assembly",
+                "icon": "📐",
+                "color": "#f59e0b",
+                "challenge": "3D geometric reasoning",
+                "test": "Spatial consistency ψs, interference detection",
+                "errors": ["Geometric interference", "Invalid transformations", "Spatial violations (ψs)"],
+                "example": "Part P-123 at position (5.2, 3.1, 7.8) interferes with P-456",
+                "expected": {"P": 0.96, "R": 0.93, "F1": 0.94, "FPR": 0.029}
+            },
+            "healthcare": {
+                "name": "Clinical/Healthcare",
+                "icon": "🏥",
+                "color": "#8b5cf6",
+                "challenge": "Clinical workflow compliance",
+                "test": "Temporal consistency ψt, protocol validation",
+                "errors": ["Protocol violations", "Temporal impossibility", "Spatial violations (ψs)"],
+                "example": "Patient transferred MICU→OR in 10 minutes",
+                "expected": {"P": 0.95, "R": 0.95, "F1": 0.95, "FPR": 0.041}
+            }
+        }
+
+        # Display dataset cards
+        dataset_cols = st.columns(4)
+
+        selected_dataset = None
+        for col, (dataset_key, dataset_info) in zip(dataset_cols, dataset_types.items()):
+            with col:
+                if st.button(
+                    f"{dataset_info['icon']} {dataset_info['name']}",
+                    key=f"dataset_{dataset_key}",
+                    use_container_width=True
+                ):
+                    st.session_state['selected_dataset'] = dataset_key
+
+        # Initialize selected dataset
+        if 'selected_dataset' not in st.session_state:
+            st.session_state['selected_dataset'] = 'manufacturing'
+
+        selected_key = st.session_state['selected_dataset']
+        dataset_info = dataset_types[selected_key]
+
+        # Display selected dataset information
+        st.markdown("---")
+        st.markdown(f"## {dataset_info['icon']} {dataset_info['name']}")
+
+        info_col1, info_col2 = st.columns([1, 1])
+
+        with info_col1:
+            st.markdown(
+                f"""
+                <div class="card" style="border-left: 4px solid {dataset_info['color']};">
+                    <h4>Dataset Characteristics</h4>
+                    <div style="margin-bottom: 10px;">
+                        <p style="margin: 0; font-size: 0.85rem; color: #6b7280;">Challenge:</p>
+                        <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 500;">{dataset_info['challenge']}</p>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <p style="margin: 0; font-size: 0.85rem; color: #6b7280;">Primary Test:</p>
+                        <p style="margin: 3px 0 0 0; font-size: 1rem; font-weight: 500;">{dataset_info['test']}</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 0.85rem; color: #6b7280;">Error Types:</p>
+                        <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                            {''.join([f'<li style="font-size: 0.9rem;">{error}</li>' for error in dataset_info['errors']])}
+                        </ul>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                f"""
+                <div class="card">
+                    <h4>Example Fact</h4>
+                    <div style="background-color: #f9fafb; padding: 10px; border-radius: 5px; border-left: 3px solid {dataset_info['color']};">
+                        <code style="font-size: 0.9rem;">{dataset_info['example']}</code>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with info_col2:
+            st.markdown(
+                f"""
+                <div class="card" style="background: linear-gradient(135deg, {dataset_info['color']} 0%, {dataset_info['color']}dd 100%); color: white;">
+                    <h4 style="color: white;">Expected Performance</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.95; margin-bottom: 15px;">
+                        Based on experimental evaluation with ground truth labels
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; opacity: 0.9;">Precision</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">{dataset_info['expected']['P']:.2f}</div>
+                        </div>
+                        <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; opacity: 0.9;">Recall</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">{dataset_info['expected']['R']:.2f}</div>
+                        </div>
+                        <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; opacity: 0.9;">F1-Score</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">{dataset_info['expected']['F1']:.2f}</div>
+                        </div>
+                        <div style="background-color: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 0.8rem; opacity: 0.9;">FPR</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">{dataset_info['expected']['FPR']:.3f}</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.9;">
+                        FPR = {dataset_info['expected']['FPR']*100:.1f}% false alarms
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Live Demo Section
+        st.markdown("---")
+        st.markdown("### Live Demonstration")
+
+        st.markdown(
+            """
+            <div class="alert-info">
+                Generate a fact from the selected dataset type and run verification to see
+                how ATLASky-AI detects different error patterns.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        demo_col1, demo_col2 = st.columns(2)
+
+        with demo_col1:
+            # Number of facts to test
+            num_test_facts = st.slider("Number of facts to test", 10, 100, 50, 10)
+
+            if st.button(f"Run Demo on {dataset_info['name']}", key="run_demo", use_container_width=True):
+                # Import the dataset generator
+                try:
+                    if selected_key == "manufacturing":
+                        from experiments.datasets.manufacturing_data import generate_manufacturing_facts as generate_facts
+                    elif selected_key == "aviation":
+                        from experiments.datasets.aviation_data import generate_aviation_facts as generate_facts
+                    elif selected_key == "cad":
+                        from experiments.datasets.cad_data import generate_cad_facts as generate_facts
+                    elif selected_key == "healthcare":
+                        from experiments.datasets.healthcare_data import generate_healthcare_facts as generate_facts
+
+                    # Generate facts with ground truth labels
+                    with st.spinner(f"Generating {num_test_facts} {dataset_info['name']} facts..."):
+                        facts, labels = generate_facts(num_test_facts)
+
+                    # Run verification on all facts
+                    from experiments.metrics.evaluation import VerificationMetrics
+                    metrics_calc = VerificationMetrics()
+
+                    verification_decisions = []
+
+                    progress_bar = st.progress(0)
+                    for i, (fact, is_correct) in enumerate(zip(facts, labels)):
+                        # Run verification
+                        result = st.session_state.rmmve.verify(fact, st.session_state.kg, None)
+                        verification_decisions.append(result['decision'])
+
+                        # Update metrics
+                        metrics_calc.update([is_correct], [result['decision']])
+
+                        # Update progress
+                        progress_bar.progress((i + 1) / num_test_facts)
+
+                    # Get final metrics
+                    metrics = metrics_calc.compute_metrics()
+
+                    # Store in session state
+                    st.session_state['demo_results'] = {
+                        'dataset': selected_key,
+                        'metrics': metrics,
+                        'num_facts': num_test_facts
+                    }
+
+                    st.success(f"✅ Completed verification of {num_test_facts} facts!")
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Error running demo: {str(e)}")
+
+        with demo_col2:
+            # Display results if available
+            if 'demo_results' in st.session_state and st.session_state['demo_results']['dataset'] == selected_key:
+                results = st.session_state['demo_results']
+                metrics = results['metrics']
+
+                st.markdown(
+                    f"""
+                    <div class="card">
+                        <h4>Demo Results ({results['num_facts']} facts)</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                            <div style="background-color: #eff6ff; padding: 10px; border-radius: 5px;">
+                                <div style="font-size: 0.8rem; color: #6b7280;">Precision</div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: #3b82f6;">{metrics['precision']:.3f}</div>
+                            </div>
+                            <div style="background-color: #f0fdf4; padding: 10px; border-radius: 5px;">
+                                <div style="font-size: 0.8rem; color: #6b7280;">Recall</div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: #10b981;">{metrics['recall']:.3f}</div>
+                            </div>
+                            <div style="background-color: #fef3c7; padding: 10px; border-radius: 5px;">
+                                <div style="font-size: 0.8rem; color: #6b7280;">F1-Score</div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: #f59e0b;">{metrics['f1']:.3f}</div>
+                            </div>
+                            <div style="background-color: #fee2e2; padding: 10px; border-radius: 5px;">
+                                <div style="font-size: 0.8rem; color: #6b7280;">FPR</div>
+                                <div style="font-size: 1.5rem; font-weight: 600; color: #ef4444;">{metrics['fpr']:.3f}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 10px; background-color: #f9fafb; border-radius: 5px;">
+                            <p style="margin: 0; font-size: 0.85rem;"><strong>Confusion Matrix:</strong></p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px;">
+                                <div style="font-size: 0.8rem;">TP: {metrics['tp']}</div>
+                                <div style="font-size: 0.8rem;">TN: {metrics['tn']}</div>
+                                <div style="font-size: 0.8rem;">FP: {metrics['fp']}</div>
+                                <div style="font-size: 0.8rem;">FN: {metrics['fn']}</div>
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    """
+                    <div class="alert-info">
+                        <span style="font-size: 18px; margin-right: 5px;">ℹ️</span>
+                        Click "Run Demo" to see verification performance on this dataset type
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+        # Metrics Explanation
+        st.markdown("---")
+        st.markdown("### Performance Metrics Explained")
+
+        metrics_cols = st.columns(4)
+
+        with metrics_cols[0]:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #3b82f6;">Precision</h4>
+                    <p style="font-size: 0.85rem; color: #6b7280;">TP/(TP+FP)</p>
+                    <p style="font-size: 0.8rem;">
+                        Fraction of rejected facts that were truly incorrect.
+                        High precision = few false alarms.
+                    </p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #6b7280;">
+                        <strong>Target:</strong> >0.90 for production
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with metrics_cols[1]:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #10b981;">Recall</h4>
+                    <p style="font-size: 0.85rem; color: #6b7280;">TP/(TP+FN)</p>
+                    <p style="font-size: 0.8rem;">
+                        Fraction of incorrect facts successfully caught.
+                        High recall = catches most errors.
+                    </p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #6b7280;">
+                        <strong>Target:</strong> >0.90 for safety-critical
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with metrics_cols[2]:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #f59e0b;">F1-Score</h4>
+                    <p style="font-size: 0.85rem; color: #6b7280;">2·P·R/(P+R)</p>
+                    <p style="font-size: 0.8rem;">
+                        Harmonic mean balancing precision and recall.
+                        Overall performance indicator.
+                    </p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #6b7280;">
+                        <strong>Target:</strong> >0.90 for deployment
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        with metrics_cols[3]:
+            st.markdown(
+                """
+                <div class="card">
+                    <h4 style="color: #ef4444;">FPR</h4>
+                    <p style="font-size: 0.85rem; color: #6b7280;">FP/(FP+TN)</p>
+                    <p style="font-size: 0.8rem;">
+                        Fraction of correct facts incorrectly rejected.
+                        Low FPR = minimal review burden.
+                    </p>
+                    <p style="font-size: 0.75rem; margin: 0; color: #6b7280;">
+                        <strong>Target:</strong> <5% for user trust
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # Full Experiment Runner Info
+        st.markdown("---")
+        st.markdown("### Running Full Experiments")
+
+        st.markdown(
+            """
+            <div class="card">
+                <h4>Command-Line Experiment Runner</h4>
+                <p style="margin-bottom: 10px;">
+                    For comprehensive testing, use the experiment runner from the command line:
+                </p>
+                <div style="background-color: #1f2937; padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                    <code style="color: #10b981; font-size: 0.9rem;">
+                        # Test on specific dataset<br>
+                        python3 experiments/run_experiments.py --dataset manufacturing --num-facts 100<br>
+                        <br>
+                        # Test on all dataset types<br>
+                        python3 experiments/run_experiments.py --all --num-facts 100<br>
+                        <br>
+                        # Quick demo (works immediately)<br>
+                        python3 experiments/quick_demo.py
+                    </code>
+                </div>
+                <p style="font-size: 0.9rem; margin: 0;">
+                    Results are saved to <code>experiments/results/</code> as JSON files for analysis.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     with tab_aaic:  # AAIC Monitoring Tab
         st.markdown("## AAIC Monitoring")
         
