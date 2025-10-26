@@ -1,25 +1,25 @@
 {
   "dataset": "manufacturing",
-  "num_facts": 50,
+  "num_facts": 100,
   "metrics": {
-    "precision": 0.68,
+    "precision": 0.55,
     "recall": 1.0,
-    "f1": 0.8095238095238095,
+    "f1": 0.7096774193548387,
     "fpr": 1.0,
-    "accuracy": 0.68,
-    "tp": 34,
+    "accuracy": 0.55,
+    "tp": 55,
     "tn": 0,
-    "fp": 16,
+    "fp": 45,
     "fn": 0,
-    "total": 50,
-    "total_time_seconds": 0.0015118122100830078,
-    "avg_time_per_fact_ms": 0.030236244201660156,
-    "facts_per_second": 33072.89071124428
+    "total": 100,
+    "total_time_seconds": 0.0034258365631103516,
+    "avg_time_per_fact_ms": 0.034258365631103516,
+    "facts_per_second": 29189.950588071544
   },
   "module_activations": {
-    "LOV": 50,
-    "POV": 50,
-    "MAV": 50
+    "LOV": 100,
+    "POV": 100,
+    "MAV": 100
   },
   "early_termination_rate": 100.0,
   "dataset_info": {
