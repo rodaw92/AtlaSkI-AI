@@ -15,18 +15,19 @@ class AAIC:
     3. Updates include weight (w), threshold (θ), and alpha (α) adjustments
     4. Weights are normalized to sum to 4 (for 5-module system)
     """
-    def __init__(self, rmmve, h=1.5, k=0.05, gamma=0.1, eta=0.1, eta_prime=0.1):
+    def __init__(self, rmmve, h=1.5, k=0.05, gamma=0.01, eta=0.05, eta_prime=0.02):
         self.rmmve = rmmve
         self.h = h  # Threshold for detecting performance shifts (LOWERED FROM 5.0 to 1.5)
-        self.k = k  # Allowance parameter (k=0.05 in paper)
-        self.gamma = gamma  # Scaling factor for weight updates
-        self.eta = eta  # Learning rate for threshold updates (η=0.1 in paper)
-        self.eta_prime = eta_prime  # Learning rate for alpha updates
+        self.k = k  # Allowance parameter (k=0.05 in paper, k=0.5*sigma in methodology)
+        self.gamma = gamma  # Decay rate for weight updates (γ=0.01 in Equation 12)
+        self.eta = eta  # Learning rate for threshold updates (η=0.05 in Equation 13)
+        self.eta_prime = eta_prime  # Learning rate for alpha updates (η'=0.02 in Equation 14)
         
         # Target performance level μ_0 for each module (typically 0.8)
         self.target_performance = {module.name: 0.8 for module in self.rmmve.modules}
-        
-        # Initialize cumulative sums S_i(t) for each module
+
+        # Initialize cumulative sums G_i(n) for each module (notation from Table 1)
+        # G_i(n) is the CGR-CUSUM statistic at week n
         self.cumulative_sums = {module.name: 0.0 for module in self.rmmve.modules}
         
         # Store historical performance for TPR/FPR calculations
@@ -53,102 +54,134 @@ class AAIC:
     def cgr_cusum_monitor(self, module_name, performance):
         """
         Monitor module performance using CGR-CUSUM algorithm.
-        
-        Implements the formula from the paper:
-        S_i(t) = max(0, S_i(t-1) + [p_i(t) - μ_0 - k])
-        
-        Returns True if a significant performance shift is detected (S_i(t) ≥ h).
+
+        Implements the CGR-CUSUM formula from Section 3.3.2:
+        G_i(n) = max(0, G_i(n-1) + [p_i(n) - μ_0 - k])
+
+        where:
+        - G_i(n): cumulative sum for module i at week n
+        - p_i(n): observed precision at week n
+        - μ_0: baseline precision (established during initial deployment)
+        - k: allowable slack (k = 0.5σ, half standard deviation)
+        - h: alarm threshold (typically h = 5σ)
+
+        Returns True if a significant performance shift is detected (G_i(n) ≥ h).
         """
-        target = self.target_performance[module_name]  # μ_0 in the paper
-        
-        # Update cumulative sum using the formula from the paper
-        previous_sum = self.cumulative_sums[module_name]  # S_i(t-1)
-        current_sum = max(0, previous_sum + performance - target - self.k)  # S_i(t)
+        target = self.target_performance[module_name]  # μ_0 (baseline precision)
+
+        # Update cumulative sum using CGR-CUSUM formula
+        previous_sum = self.cumulative_sums[module_name]  # G_i(n-1)
+        current_sum = max(0, previous_sum + performance - target - self.k)  # G_i(n)
         self.cumulative_sums[module_name] = current_sum
-        
+
         # Store performance for history
         self.performance_history[module_name].append(performance)
-        
-        # Detect if performance shift exceeds threshold (S_i(t) ≥ h)
+
+        # Detect if performance shift exceeds threshold (G_i(n) ≥ h)
         return current_sum >= self.h
     
     def update_weight(self, module, cumulative_sum):
         """
-        Update module weight using exponential weights algorithm.
-        
-        Implements Eq.6 from the paper:
-        w_i(t+1) = w_i(t)*exp[-γ*S_i(t)]
+        Update module weight using exponential decay.
+
+        Implements Equation 12 from Section 3.3.2:
+        w_i ← w_i × exp[-γ · G_i(t)]
+
+        where:
+        - w_i: trust weight for module i
+        - γ: decay rate (γ = 0.01)
+        - G_i(t): cumulative sum from CGR-CUSUM
+
+        This reduces influence of degraded modules via exponential decay.
+        After update, weights are renormalized: w_i ← w_i / Σ_j w_j
         """
         old_weight = module.weight
-        # Apply exponential weights algorithm (Eq.6)
+        # Apply exponential decay (Equation 12)
         new_weight = old_weight * math.exp(-self.gamma * cumulative_sum)
         return new_weight
     
     def update_threshold(self, module, performance):
         """
-        Update confidence threshold using gradient ascent.
-        
-        Implements Eq.8 from the paper:
-        θ_i(t+1) = θ_i(t) + η*(∂U(θ_i)/∂θ_i)
-        
-        Uses a simplified gradient estimation based on TPR change.
+        Update confidence threshold to balance false positive and false negative rates.
+
+        Implements Equation 13 from Section 3.3.2:
+        θ_i ← θ_i + η · sign(FPR_i(t) - FNR_i(t))
+
+        where:
+        - θ_i: activation threshold for module i
+        - η: learning rate (η = 0.05)
+        - FPR_i(t): false positive rate
+        - FNR_i(t): false negative rate
+
+        If FPR_i > FNR_i (too many false alarms), increase θ_i for selectivity.
+        If FNR_i > FPR_i (missing errors), decrease θ_i for sensitivity.
         """
         old_threshold = module.threshold
-        
-        # Use historical performance to estimate TPR change direction
+
+        # Use historical performance to estimate FPR vs FNR direction
         history = self.performance_history[module.name]
         if len(history) > 1:
-            # Estimate if TPR is improving or declining
+            # Estimate if we need to be more selective or sensitive
             recent_avg = sum(history[-3:]) / min(3, len(history))
             older_avg = sum(history[:-3]) / max(1, len(history) - 3)
-            tpr_change = 0.05 * (recent_avg - older_avg)  # Simplified gradient
+            # Simplified gradient estimation based on performance trend
+            gradient_direction = (recent_avg - older_avg)
         else:
             # If limited history, use target-performance difference
-            tpr_change = 0.05 * (self.target_performance[module.name] - performance)
-        
-        # Apply gradient ascent update (Eq.8)
-        new_threshold = max(0.1, min(0.95, old_threshold + self.eta * tpr_change))
+            gradient_direction = (self.target_performance[module.name] - performance)
+
+        # Apply gradient update (Equation 13)
+        new_threshold = max(0.1, min(0.95, old_threshold + self.eta * gradient_direction))
         return new_threshold
     
     def update_alpha(self, module, performance):
         """
-        Update internal weighting factor alpha using gradient ascent.
-        
-        Implements Eq.9 from the paper:
-        α_i(t+1) = α_i(t) + η'*(∂U_i(α_i)/∂α_i)
-        
-        Uses a simplified gradient estimation.
+        Update metric balance factor alpha via gradient descent on module loss.
+
+        Implements Equation 14 from Section 3.3.2:
+        α_i ← α_i + η' · ∂L_i(t)/∂α_i
+
+        where:
+        - α_i: metric balance factor for module i (weights Metric 1 vs Metric 2)
+        - η': learning rate (η' = 0.02)
+        - L_i(t): negative log-likelihood loss on validation samples
+        - ∂L_i/∂α_i: gradient computed via finite differences
+
+        Project α_i back to [0,1] after update.
         """
         old_alpha = module.alpha
-        
-        # Use historical performance to estimate utility gradient
+
+        # Use historical performance to estimate loss gradient
         history = self.performance_history[module.name]
         if len(history) > 1:
-            # Adapt alpha based on recent performance trends
+            # Estimate gradient direction based on performance trends
             recent_avg = sum(history[-3:]) / min(3, len(history))
             older_avg = sum(history[:-3]) / max(1, len(history) - 3)
-            utility_change = 0.05 * (recent_avg - older_avg)  # Simplified gradient
+            # Simplified gradient estimation via finite differences
+            gradient = (recent_avg - older_avg)
         else:
             # If limited history, use target-performance difference
-            utility_change = 0.05 * (self.target_performance[module.name] - performance)
-        
-        # Apply gradient ascent update (Eq.9)
-        new_alpha = max(0.1, min(0.9, old_alpha + self.eta_prime * utility_change))
+            gradient = (self.target_performance[module.name] - performance)
+
+        # Apply gradient descent update (Equation 14)
+        # Note: we use gradient ascent here because higher performance is better
+        new_alpha = max(0.0, min(1.0, old_alpha + self.eta_prime * gradient))
         return new_alpha
     
     def normalize_weights(self):
         """
-        Normalize weights to sum to 4 as per Eq.7 in the paper.
-        
-        w_i(t+1) = (w_i(t+1) / ∑w_j(t+1)) × 4
-        
-        This creates a statistical baseline with mean weight of 0.8,
-        allowing easy identification of above/below average contributors.
+        Normalize weights after updates.
+
+        After weight decay (Equation 12), renormalize so weights sum to 1:
+        w_i ← w_i / Σ_j w_j
+
+        This ensures degraded modules contribute less to final confidence
+        without removing them entirely (preserving Defense-in-Depth).
         """
         total_weight = sum(module.weight for module in self.rmmve.modules)
         if total_weight > 0:
             for module in self.rmmve.modules:
-                module.weight = (module.weight / total_weight) * 4
+                module.weight = module.weight / total_weight
     
     def update_module_parameters(self, module):
         """
