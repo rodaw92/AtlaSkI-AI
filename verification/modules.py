@@ -28,7 +28,7 @@ class LocalOntologyVerification(VerificationModule):
         """
         # Check if the fact contains a performance shift for LOV
         has_shift = candidate_fact.get("contains_performance_shift") == "LOV"
-        
+
         # Base precision and recall based on quality
         if fact_quality == "high_quality":
             # Set very high precision and recall for high quality facts to exceed threshold

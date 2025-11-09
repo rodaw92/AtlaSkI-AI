@@ -1,0 +1,193 @@
+{
+    "domain_name": "aerospace",
+    "domain_description": "Aerospace manufacturing and quality inspection with high-precision requirements",
+    "ontology": {
+        "entity_classes": [
+            {
+                "name": "Blade",
+                "type": "AerospaceEntity",
+                "description": "Turbine blade components",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "blade_type",
+                    "alloy_composition",
+                    "lifecycle_hours"
+                ]
+            },
+            {
+                "name": "EngineSet",
+                "type": "AerospaceEntity",
+                "description": "Aircraft engine assemblies",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "engine_model",
+                    "thrust_rating"
+                ]
+            },
+            {
+                "name": "InspectionMeasurement",
+                "type": "Measurement",
+                "description": "Quality inspection measurements",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "measurement_id",
+                    "feature_name",
+                    "nominal_value_mm",
+                    "actual_value_mm",
+                    "tolerance_mm"
+                ]
+            }
+        ],
+        "relationship_types": [
+            {
+                "name": "containsBlade",
+                "domain": "aerospace",
+                "description": "Engine assembly contains turbine blade"
+            },
+            {
+                "name": "hasMeasurement",
+                "domain": "aerospace",
+                "description": "Component has inspection measurement"
+            },
+            {
+                "name": "locatedAt",
+                "spatiotemporal": true,
+                "description": "Entity located at coordinates"
+            }
+        ],
+        "attributes": [
+            "material",
+            "dimensions",
+            "tolerance_mm",
+            "actual_value_mm",
+            "inspection_tool",
+            "serial_number"
+        ],
+        "spatiotemporal_required": true
+    },
+    "standards": {
+        "standards": [
+            {
+                "name": "STEP_AP242",
+                "version": "ISO_10303",
+                "type": "CAD_data_exchange",
+                "description": "Product data representation and exchange standard"
+            },
+            {
+                "name": "AS9100",
+                "version": "Rev_D",
+                "type": "quality_management",
+                "description": "Quality management systems for aerospace"
+            },
+            {
+                "name": "AMS",
+                "version": "current",
+                "type": "material_specifications",
+                "description": "Aerospace Material Specifications"
+            }
+        ],
+        "terminology_sources": [
+            "ISO",
+            "ASTM",
+            "AMS",
+            "SAE"
+        ],
+        "protocol_libraries": {
+            "measurement": "ISO_1101",
+            "quality": "AS9100"
+        }
+    },
+    "physics": {
+        "max_velocities": {
+            "default": 2.0,
+            "manual_handling": 2.0,
+            "forklift": 5.0,
+            "automated_conveyor": 1.0,
+            "crane": 3.0,
+            "agv": 2.5
+        },
+        "facility_geometry": {
+            "type": "manufacturing_floor",
+            "area_m2": 10000,
+            "zones": [
+                "assembly",
+                "inspection",
+                "storage",
+                "testing"
+            ]
+        },
+        "restricted_zones": [
+            {
+                "name": "clean_room",
+                "coordinates": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "radius": 10
+                },
+                "restrictions": [
+                    "no_manual_handling",
+                    "strict_protocols"
+                ]
+            }
+        ],
+        "temporal_resolution": 1.0,
+        "spatial_resolution": 0.001
+    },
+    "credibility": {
+        "credibility_weights": {
+            "FAA": 1.0,
+            "NASA": 0.95,
+            "EASA": 0.95,
+            "manufacturer_spec": 0.90,
+            "industry_standard": 0.85,
+            "academic": 0.70,
+            "technical_blog": 0.50
+        },
+        "source_mappings": {
+            "faa.gov": "FAA",
+            "nasa.gov": "NASA",
+            "easa.europa.eu": "EASA"
+        },
+        "authoritative_sources": [
+            "FAA",
+            "NASA",
+            "EASA",
+            "Boeing",
+            "Airbus",
+            "Pratt_Whitney",
+            "GE_Aviation"
+        ]
+    },
+    "embeddings": {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "embedding_dim": 384,
+        "training_corpus_size": 15000,
+        "training_data_path": "data/aerospace_corpus.json",
+        "retraining_frequency": "quarterly",
+        "similarity_threshold": 0.75,
+        "anomaly_detection_threshold": 0.25
+    },
+    "initial_weights": {
+        "LOV": 0.25,
+        "POV": 0.25,
+        "MAV": 0.20,
+        "WSV": 0.15,
+        "ESV": 0.15
+    },
+    "initial_thresholds": {
+        "LOV": 0.88,
+        "POV": 0.88,
+        "MAV": 0.90,
+        "WSV": 0.88,
+        "ESV": 0.88
+    },
+    "initial_alphas": {
+        "LOV": 0.70,
+        "POV": 0.65,
+        "MAV": 0.75,
+        "WSV": 0.65,
+        "ESV": 0.70
+    },
+    "global_threshold": 0.75
+}

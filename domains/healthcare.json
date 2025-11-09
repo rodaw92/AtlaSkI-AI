@@ -1,0 +1,199 @@
+{
+    "domain_name": "healthcare",
+    "domain_description": "Healthcare facility patient tracking, clinical transfers, and protocol compliance",
+    "ontology": {
+        "entity_classes": [
+            {
+                "name": "Patient",
+                "type": "HealthcareEntity",
+                "description": "Patient entities with medical records",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "patient_id",
+                    "medical_record_number",
+                    "current_condition"
+                ]
+            },
+            {
+                "name": "CareUnit",
+                "type": "HealthcareEntity",
+                "description": "Hospital care units and departments",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "unit_type",
+                    "capacity",
+                    "coordinates"
+                ]
+            },
+            {
+                "name": "ClinicalTransfer",
+                "type": "Event",
+                "description": "Patient transfers between care units",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "transfer_id",
+                    "from_unit",
+                    "to_unit",
+                    "transfer_reason"
+                ]
+            }
+        ],
+        "relationship_types": [
+            {
+                "name": "transferred",
+                "domain": "healthcare",
+                "description": "Patient transferred between care units"
+            },
+            {
+                "name": "admittedTo",
+                "domain": "healthcare",
+                "description": "Patient admitted to care unit"
+            },
+            {
+                "name": "locatedAt",
+                "spatiotemporal": true,
+                "description": "Entity located at coordinates"
+            }
+        ],
+        "attributes": [
+            "patient_id",
+            "unit_type",
+            "transfer_reason",
+            "medical_record",
+            "admission_date",
+            "discharge_date"
+        ],
+        "spatiotemporal_required": true
+    },
+    "standards": {
+        "standards": [
+            {
+                "name": "HL7_FHIR",
+                "version": "R4",
+                "type": "healthcare_interoperability",
+                "description": "Fast Healthcare Interoperability Resources"
+            },
+            {
+                "name": "HIPAA",
+                "version": "current",
+                "type": "privacy_compliance",
+                "description": "Health Insurance Portability and Accountability Act"
+            },
+            {
+                "name": "Joint_Commission",
+                "version": "current",
+                "type": "accreditation_standards",
+                "description": "Healthcare quality and safety standards"
+            }
+        ],
+        "terminology_sources": [
+            "SNOMED_CT",
+            "ICD-10",
+            "LOINC",
+            "RxNorm"
+        ],
+        "protocol_libraries": {
+            "transfer": "Joint_Commission_Standards",
+            "medication": "ISMP_Guidelines",
+            "handoff": "SBAR_Protocol"
+        }
+    },
+    "physics": {
+        "max_velocities": {
+            "default": 2.0,
+            "wheelchair": 2.0,
+            "stretcher": 3.0,
+            "ambulance": 20.0,
+            "walking": 1.5,
+            "bed_transport": 2.5
+        },
+        "facility_geometry": {
+            "type": "hospital_layout",
+            "floors": 5,
+            "area_per_floor_m2": 5000,
+            "units": [
+                "MICU",
+                "SICU",
+                "OR",
+                "Recovery",
+                "Floor",
+                "ER"
+            ]
+        },
+        "restricted_zones": [
+            {
+                "name": "isolation_ward",
+                "coordinates": {
+                    "x": 50,
+                    "y": 30,
+                    "z": 10,
+                    "radius": 15
+                },
+                "restrictions": [
+                    "strict_protocols",
+                    "ppe_required"
+                ]
+            }
+        ],
+        "temporal_resolution": 60.0,
+        "spatial_resolution": 1.0
+    },
+    "credibility": {
+        "credibility_weights": {
+            "CDC": 1.0,
+            "WHO": 0.95,
+            "NIH": 0.95,
+            "FDA": 0.95,
+            "hospital_EHR": 0.90,
+            "medical_journal": 0.85,
+            "clinical_trial": 0.80,
+            "medical_news": 0.60
+        },
+        "source_mappings": {
+            "cdc.gov": "CDC",
+            "who.int": "WHO",
+            "nih.gov": "NIH",
+            "fda.gov": "FDA"
+        },
+        "authoritative_sources": [
+            "CDC",
+            "WHO",
+            "NIH",
+            "FDA",
+            "JAMA",
+            "NEJM",
+            "Lancet"
+        ]
+    },
+    "embeddings": {
+        "model_name": "emilyalsentzer/Bio_ClinicalBERT",
+        "embedding_dim": 768,
+        "training_corpus_size": 20000,
+        "training_data_path": "data/healthcare_corpus.json",
+        "retraining_frequency": "quarterly",
+        "similarity_threshold": 0.70,
+        "anomaly_detection_threshold": 0.30
+    },
+    "initial_weights": {
+        "LOV": 0.20,
+        "POV": 0.30,
+        "MAV": 0.25,
+        "WSV": 0.15,
+        "ESV": 0.10
+    },
+    "initial_thresholds": {
+        "LOV": 0.88,
+        "POV": 0.90,
+        "MAV": 0.88,
+        "WSV": 0.88,
+        "ESV": 0.88
+    },
+    "initial_alphas": {
+        "LOV": 0.60,
+        "POV": 0.75,
+        "MAV": 0.70,
+        "WSV": 0.65,
+        "ESV": 0.60
+    },
+    "global_threshold": 0.75
+}
