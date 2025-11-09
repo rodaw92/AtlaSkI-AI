@@ -1,0 +1,191 @@
+{
+    "domain_name": "aviation",
+    "domain_description": "Aviation safety incident reporting, analysis, and regulatory compliance",
+    "ontology": {
+        "entity_classes": [
+            {
+                "name": "SafetyIncident",
+                "type": "AviationEntity",
+                "description": "Aviation safety reporting incidents",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "incident_id",
+                    "severity_level",
+                    "narrative_text",
+                    "contributing_factors"
+                ]
+            },
+            {
+                "name": "Aircraft",
+                "type": "AviationEntity",
+                "description": "Aircraft entities",
+                "spatiotemporal": true,
+                "required_attributes": [
+                    "aircraft_id",
+                    "aircraft_type",
+                    "registration"
+                ]
+            },
+            {
+                "name": "Operator",
+                "type": "Person",
+                "description": "Aircraft operators and pilots",
+                "spatiotemporal": false,
+                "required_attributes": [
+                    "operator_id",
+                    "certification"
+                ]
+            }
+        ],
+        "relationship_types": [
+            {
+                "name": "hasOperator",
+                "domain": "aviation",
+                "description": "Incident has operator involvement"
+            },
+            {
+                "name": "occurredAt",
+                "spatiotemporal": true,
+                "description": "Incident occurred at location"
+            },
+            {
+                "name": "caused",
+                "causal": true,
+                "description": "Causal relationship"
+            }
+        ],
+        "attributes": [
+            "incident_id",
+            "severity",
+            "aircraft_type",
+            "flight_phase",
+            "weather_conditions",
+            "altitude",
+            "airspace_class"
+        ],
+        "spatiotemporal_required": true
+    },
+    "standards": {
+        "standards": [
+            {
+                "name": "ICAO_Annex_13",
+                "version": "2020",
+                "type": "accident_investigation",
+                "description": "Aircraft Accident and Incident Investigation"
+            },
+            {
+                "name": "FAA_Part_121",
+                "version": "current",
+                "type": "operations",
+                "description": "Operating Requirements: Domestic, Flag, and Supplemental Operations"
+            },
+            {
+                "name": "EASA_Part_145",
+                "version": "current",
+                "type": "maintenance",
+                "description": "Approved Maintenance Organizations"
+            }
+        ],
+        "terminology_sources": [
+            "ICAO",
+            "FAA",
+            "EASA",
+            "NTSB"
+        ],
+        "protocol_libraries": {
+            "reporting": "ASRS_taxonomy",
+            "investigation": "ICAO_Annex_13",
+            "safety_management": "SMS_framework"
+        }
+    },
+    "physics": {
+        "max_velocities": {
+            "default": 5.0,
+            "ground_ops": 5.0,
+            "taxi": 15.0,
+            "takeoff": 100.0,
+            "cruise": 250.0,
+            "approach": 80.0
+        },
+        "facility_geometry": {
+            "type": "airport_airspace",
+            "runways": 3,
+            "area_km2": 50,
+            "airspace_class": "Class_B"
+        },
+        "restricted_zones": [
+            {
+                "name": "runway_safety_area",
+                "coordinates": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0,
+                    "length": 3000,
+                    "width": 150
+                },
+                "restrictions": [
+                    "no_ground_vehicles",
+                    "clearance_required"
+                ]
+            }
+        ],
+        "temporal_resolution": 1.0,
+        "spatial_resolution": 10.0
+    },
+    "credibility": {
+        "credibility_weights": {
+            "NTSB": 1.0,
+            "FAA": 0.95,
+            "ICAO": 0.95,
+            "EASA": 0.95,
+            "NASA_ASRS": 0.90,
+            "airline_report": 0.85,
+            "pilot_report": 0.75,
+            "aviation_news": 0.60
+        },
+        "source_mappings": {
+            "ntsb.gov": "NTSB",
+            "faa.gov": "FAA",
+            "icao.int": "ICAO",
+            "easa.europa.eu": "EASA"
+        },
+        "authoritative_sources": [
+            "NTSB",
+            "FAA",
+            "ICAO",
+            "EASA",
+            "NASA_ASRS"
+        ]
+    },
+    "embeddings": {
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "embedding_dim": 384,
+        "training_corpus_size": 12000,
+        "training_data_path": "data/aviation_corpus.json",
+        "retraining_frequency": "quarterly",
+        "similarity_threshold": 0.70,
+        "anomaly_detection_threshold": 0.30
+    },
+    "initial_weights": {
+        "LOV": 0.20,
+        "POV": 0.25,
+        "MAV": 0.25,
+        "WSV": 0.20,
+        "ESV": 0.10
+    },
+    "initial_thresholds": {
+        "LOV": 0.88,
+        "POV": 0.88,
+        "MAV": 0.90,
+        "WSV": 0.88,
+        "ESV": 0.88
+    },
+    "initial_alphas": {
+        "LOV": 0.60,
+        "POV": 0.70,
+        "MAV": 0.75,
+        "WSV": 0.65,
+        "ESV": 0.60
+    },
+    "global_threshold": 0.75
+}

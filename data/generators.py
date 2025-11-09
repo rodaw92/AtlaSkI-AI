@@ -7,10 +7,16 @@ from models.constants import (
 
 def generate_candidate_fact_with_quality(quality_level, introduce_shift=False):
     """
-    Generate a random aerospace inspection candidate.
+    Generate a random aerospace inspection candidate with actual quality issues.
     
     Parameters:
-    quality_level (str): Determines the quality of the generated fact
+    quality_level (str): Determines the quality and type of issues in the generated fact
+        - high_quality: Clean, well-formed facts with correct ontology and physics
+        - medium_quality: Minor issues but generally acceptable
+        - semantic_issue: Ontology violations (wrong entity classes, invalid relationships)
+        - spatial_issue: Impossible spatial/temporal constraints (bilocation, impossible velocity)
+        - external_ref: Fabricated references that can't be externally validated
+        - low_quality: Multiple issues (semantic + spatial + invalid data)
     introduce_shift (bool): If True, introduces performance shifts to trigger AAIC
     """
     # Select components for the fact
@@ -30,15 +36,32 @@ def generate_candidate_fact_with_quality(quality_level, introduce_shift=False):
     if quality_level == "high_quality":
         # Very small deviation - highly reliable measurement
         actual_value = round(nominal_value + random.uniform(-0.01, 0.01), 3)
-    elif quality_level == "medium_quality" or quality_level == "spatial_issue":
+        tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
+    elif quality_level == "medium_quality":
         # Moderate deviation but within tolerance
         actual_value = round(nominal_value + random.uniform(-0.03, 0.03), 3)
-    else:
-        # Larger deviation
-        actual_value = round(nominal_value + random.uniform(-0.07, 0.07), 3)
+        tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
+    elif quality_level == "semantic_issue":
+        # Use wrong terminology or invalid entity classes
+        actual_value = round(nominal_value + random.uniform(-0.02, 0.02), 3)
+        tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
+        # Will inject semantic errors below
+    elif quality_level == "spatial_issue":
+        # Normal values but will create impossible spatial/temporal constraints
+        actual_value = round(nominal_value + random.uniform(-0.02, 0.02), 3)
+        tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
+        # Will inject spatial errors below
+    elif quality_level == "external_ref":
+        # Create fabricated references
+        actual_value = round(nominal_value + random.uniform(-0.02, 0.02), 3)
+        tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
+        # Will use fake standards/tools
+    else:  # low_quality
+        # Larger deviation and multiple issues
+        actual_value = round(nominal_value + random.uniform(-0.15, 0.15), 3)
+        tolerance = f"±{round(random.uniform(0.020, 0.050), 3)}"  # Very tight tolerance
     
     deviation = round(actual_value - nominal_value, 3)
-    tolerance = f"±{round(random.uniform(0.080, 0.150), 3)}"
     surface_side = random.choice(SURFACE_SIDES)
     
     # Generate timestamps (within the past 24 hours)
@@ -48,26 +71,89 @@ def generate_candidate_fact_with_quality(quality_level, introduce_shift=False):
     random_seconds = random.randint(0, 59)
     timestamp = (now - timedelta(hours=random_hours, minutes=random_minutes, seconds=random_seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
     
-    # Generate spatial coordinates
-    x_coord = round(random.uniform(-10.0, 10.0), 2)
-    y_coord = round(random.uniform(-10.0, 10.0), 2)
-    z_coord = round(random.uniform(50.0, 300.0), 1)
+    # Generate spatial coordinates based on quality
+    if quality_level == "spatial_issue":
+        # Create impossible locations (e.g., extremely far away requiring impossible velocity)
+        x_coord = round(random.uniform(100.0, 200.0), 2)  # Very far from origin
+        y_coord = round(random.uniform(100.0, 200.0), 2)
+        z_coord = round(random.uniform(50.0, 300.0), 1)
+        # Make timestamp very recent so travel would be impossible
+        timestamp = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        # Normal spatial coordinates
+        x_coord = round(random.uniform(-10.0, 10.0), 2)
+        y_coord = round(random.uniform(-10.0, 10.0), 2)
+        z_coord = round(random.uniform(50.0, 300.0), 1)
     
-    # Create relationships
-    relationships = [
-        {
-            "relationship_id": "R1",
-            "subject_entity_id": engine_set,
-            "relationship_type": "containsBlade",
-            "object_entity_id": blade_component
-        },
-        {
-            "relationship_id": "R2",
-            "subject_entity_id": blade_component,
-            "relationship_type": "hasMeasurement",
-            "object_entity_id": measurement_id
-        }
-    ]
+    # Inject quality-specific issues into relationships and inspection tool
+    if quality_level == "semantic_issue":
+        # INJECT SEMANTIC ERRORS: Wrong relationship types or invalid entity classes
+        relationships = [
+            {
+                "relationship_id": "R1",
+                "subject_entity_id": engine_set,
+                "relationship_type": "manufacturedBy",  # WRONG: Should be "containsBlade"
+                "object_entity_id": blade_component
+            },
+            {
+                "relationship_id": "R2",
+                "subject_entity_id": blade_component,
+                "relationship_type": "isPartOf",  # WRONG: Should be "hasMeasurement"
+                "object_entity_id": measurement_id
+            }
+        ]
+        inspection_tool = "UltraSonicInspector"  # Non-standard tool name
+    elif quality_level == "external_ref":
+        # INJECT EXTERNAL REFERENCE ERRORS: Fabricated tools and standards
+        relationships = [
+            {
+                "relationship_id": "R1",
+                "subject_entity_id": engine_set,
+                "relationship_type": "containsBlade",
+                "object_entity_id": blade_component
+            },
+            {
+                "relationship_id": "R2",
+                "subject_entity_id": blade_component,
+                "relationship_type": "hasMeasurement",
+                "object_entity_id": measurement_id
+            }
+        ]
+        inspection_tool = "FabricatedScanner_XZ9000"  # FABRICATED: Can't be externally validated
+    elif quality_level == "low_quality":
+        # INJECT MULTIPLE ERRORS: Wrong relationships + fabricated tools
+        relationships = [
+            {
+                "relationship_id": "R1",
+                "subject_entity_id": engine_set,
+                "relationship_type": "linkedTo",  # WRONG: Invalid relationship
+                "object_entity_id": blade_component
+            },
+            {
+                "relationship_id": "R2",
+                "subject_entity_id": blade_component,
+                "relationship_type": "contains",  # WRONG: Invalid relationship
+                "object_entity_id": measurement_id
+            }
+        ]
+        inspection_tool = "UnknownTool_123"  # FABRICATED
+    else:
+        # Normal, valid relationships
+        relationships = [
+            {
+                "relationship_id": "R1",
+                "subject_entity_id": engine_set,
+                "relationship_type": "containsBlade",
+                "object_entity_id": blade_component
+            },
+            {
+                "relationship_id": "R2",
+                "subject_entity_id": blade_component,
+                "relationship_type": "hasMeasurement",
+                "object_entity_id": measurement_id
+            }
+        ]
+        inspection_tool = "3D_Scanner_Unit"  # Standard tool
     
     # Base fact structure
     fact = {
@@ -84,7 +170,7 @@ def generate_candidate_fact_with_quality(quality_level, introduce_shift=False):
                         "deviation_mm": deviation,
                         "tolerance_range_mm": tolerance,
                         "surface_side": surface_side,
-                        "inspection_tool": "3D_Scanner_Unit",
+                        "inspection_tool": inspection_tool,
                         "status": "PASS" if abs(deviation) <= float(tolerance.replace("±", "")) else "FAIL"
                     }
                 ]
@@ -110,26 +196,27 @@ def generate_candidate_fact_with_quality(quality_level, introduce_shift=False):
         }
     }
     
-    # Modify fact based on quality level
-    if quality_level == "high_quality":
-        # No modifications - this is a high-quality fact that should pass LOV easily
-        pass
-    
-    elif quality_level == "medium_quality":
-        # Slightly increase deviation but still valid
-        fact["spatiotemporal_inspection_data"]["inspection_data"]["inspection_measurements"][0]["deviation_mm"] = round(deviation * 1.5, 3)
-    
-    elif quality_level == "spatial_issue":
-        # Introduce a potential spatial issue - mismatched coordinates or entity IDs
-        if random.random() < 0.5:
-            # Slightly change the entity_id in spatial data
-            fact["spatiotemporal_inspection_data"]["spatial_data"][0]["entity_id"] = measurement_id + "_variant"
-        else:
-            # Use unusual coordinates that need spatial verification
-            fact["spatiotemporal_inspection_data"]["spatial_data"][0]["coordinates"]["z_coord"] = round(z_coord * 1.5, 1)
+    # Additional modifications based on quality level
+    if quality_level == "spatial_issue":
+        # INJECT SPATIAL ERRORS: Add conflicting spatial data (entity in two places at once)
+        # Add a second spatial entry with different coordinates at same/similar time
+        fact["spatiotemporal_inspection_data"]["spatial_data"].append({
+            "entity_id": measurement_id,
+            "coordinates": {
+                "x_coord": x_coord + 50.0,  # 50m away
+                "y_coord": y_coord + 50.0,
+                "z_coord": z_coord
+            }
+        })
+        # Add another temporal entry very close in time (impossible movement)
+        timestamp2 = (now - timedelta(seconds=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        fact["spatiotemporal_inspection_data"]["temporal_data"].append({
+            "entity_id": measurement_id,
+            "timestamp": timestamp2,
+            "event_type_or_feature": feature_name
+        })
     
     elif quality_level == "external_ref":
-        # Add references or terminology that might need web search verification
         extra_terms = ["Proprietary_Method_XR7", "Advanced_Inspection_Protocol", "ISO9001_Certification"]
         fact["spatiotemporal_inspection_data"]["inspection_data"]["inspection_measurements"][0]["reference_standard"] = random.choice(extra_terms)
     

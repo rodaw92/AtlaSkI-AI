@@ -1,8 +1,8 @@
 # ATLASky-AI
 
-## 4D Spatiotemporal Knowledge Graph Verification System
+## Multi-Domain 4D Spatiotemporal Knowledge Graph Verification System
 
-ATLASky-AI is a novel verification system for 4D Spatiotemporal Knowledge Graphs (STKGs) that combines physics-based constraints with multi-agent verification to detect and prevent:
+ATLASky-AI is a domain-adaptable verification system for 4D Spatiotemporal Knowledge Graphs (STKGs) that combines physics-based constraints with multi-modal verification to detect and prevent:
 
 - **Content Hallucination**: Fabricated facts not grounded in reality
 - **ST-Inconsistency**: Violations of physical laws (spatial/temporal)
@@ -44,17 +44,18 @@ AAIC continuously monitors module performance using the CGR-CUSUM algorithm and 
 - **Thresholds (θ)**: Using gradient ascent based on FPR-FNR balance
 - **Alpha (α)**: Using gradient ascent to optimize metric combination
 
-## Features
+## Key Features
 
+- **Multi-Domain Support** - Aerospace, Healthcare, Aviation, CAD/Engineering
 - **Physics-Based Verification** - Enforces spatial (ψ_s) and temporal (ψ_t) consistency using physical laws
-- **Early Termination** - Stops verification when sufficient confidence is reached, improving efficiency
-- **Adaptive Parameters** - AAIC automatically adjusts weights, thresholds, and alpha values
-- **4D Spatiotemporal Knowledge Graph** - Full support for entities with (x,y,z,t) coordinates
-- **Experimental Evaluation** - Test on 4 dataset types: Manufacturing, Aviation, CAD, Healthcare
+- **Three-Stage Pipeline** - Data Preprocessing → LLM Extraction → TruthFlow Verification
+- **Adaptive Intelligence** - AAIC automatically adjusts parameters based on performance monitoring
+- **Honest Verification** - No artificial score boosting, real quality assessment
+- **Automatic STKG Integration** - Accepted facts automatically added to knowledge graph
 - **Interactive Visualization** - Comprehensive dashboards with 6 tabs:
   - 📚 Methodology - STKG formalization, physics predicates, error taxonomy
-  - 💠 Verification Process - Real-time fact verification with module performance
-  - 🧪 Experimental Evaluation - Live demo on different dataset types with P/R/F1/FPR metrics
+  - 🗂️ STKG Structure - Knowledge graph visualization, domain examples, ontology browser
+  - 💠 Verification Process - Three-stage pipeline with upload/processing capabilities
   - 🔄 AAIC Monitoring - CGR-CUSUM tracking and parameter shift detection
   - 📊 Parameter Evolution - Weight, threshold, and alpha adaptation over time
   - 📜 Verification History - Complete audit trail of all verifications
@@ -74,24 +75,34 @@ AAIC continuously monitors module performance using the CGR-CUSUM algorithm and 
 ### Running the Application
 
 ```bash
-cd atlasky-ai
+cd AtlaSkI-AI
 streamlit run app.py
 ```
+
+The dashboard will open at `http://localhost:8501`
 
 ## Code Structure
 
 - `app.py` - Main Streamlit application with 6 interactive tabs
-- `models/` - Knowledge graph implementation, constants, and STKG formalization
+- `models/` - Knowledge graph and ontology implementation
+  - `knowledge_graph.py` - 4D STKG with physics predicates
+  - `ontology.py` - Multi-domain ontology system (16 entity classes, 11 relationships)
+  - `constants.py` - Physical parameters and domain constants
 - `verification/` - Five verification modules (LOV, POV, MAV, WSV, ESV)
-- `aaic/` - Autonomous Adaptive Intelligence Cycle with CGR-CUSUM monitoring
-- `experiments/` - Experimental evaluation framework
-  - `datasets/` - Dataset generators (manufacturing, aviation, CAD, healthcare)
+  - `rmmve.py` - Ranked Multi-Modal Verification with early termination
+  - `modules.py` - All 5 modules with dual-metric implementation
+  - `base.py` - Base module with LLM confidence weighting
+- `aaic/` - Autonomous Adaptive Intelligence Cycle
+  - `aaic.py` - CGR-CUSUM monitoring and parameter adaptation
+- `data/` - Data processing and generation
+  - `preprocessing.py` - Stage 1: RD → RD' normalization
+  - `llm_extraction.py` - Stage 2: LLM extraction with prompts
+  - `quality_based_generator.py` - Honest test data generation
+- `experiments/` - Experimental evaluation
+  - `datasets/` - Generators (aerospace, aviation, CAD, healthcare)
   - `metrics/` - Evaluation metrics (Precision, Recall, F1, FPR)
-  - `run_experiments.py` - Full experiment runner
-  - `quick_demo.py` - Quick demonstration script
-- `data/` - Data generation utilities
-- `visualization/` - Visualization components and Plotly charts
-- `utils/` - Utility functions and custom CSS styles
+- `visualization/` - UI components and Plotly charts
+- `utils/` - Utility functions and CSS styles
 
 ## Usage
 
@@ -106,24 +117,27 @@ streamlit run app.py
 The dashboard provides 6 interactive tabs:
 
 #### 📚 Methodology Tab
-- Complete STKG formalization (Definition 1: G = (V, E, O, T, Ψ))
+- Complete STKG formalization (G = (V, E, O, T, Ψ))
 - Physics predicates visualization (ψ_s, ψ_t, Ψ)
 - Error taxonomy (Content Hallucination, ST-Inconsistency, Semantic Drift)
 - Five-module pipeline explanation
 - AAIC adaptation mechanisms
 
-#### 💠 Verification Process Tab
-- Generate candidate facts with varying quality levels
-- Run real-time verification with RMMVe pipeline
-- View module confidence scores and early termination
-- Analyze verification metrics and processing time
+#### 🗂️ STKG Structure Tab
+- Knowledge graph visualization (V, E, O, T, Ψ)
+- Domain-specific STKG examples (aerospace, healthcare, aviation, CAD)
+- Live metrics (entities, relationships, accepted facts)
+- Recent STKG updates (last 5 accepted facts)
+- Ontology browser (entity classes, relationships, constraints, rules)
 
-#### 🧪 Experimental Evaluation Tab
-- Select dataset type (Manufacturing, Aviation, CAD, Healthcare)
-- View expected performance benchmarks
-- Run live demo with configurable number of facts
-- See real-time P/R/F1/FPR metrics
-- Compare performance across different error patterns
+#### 💠 Verification Process Tab
+- Three-stage pipeline: Preprocessing → LLM Extraction → TruthFlow Verification
+- Upload files (TXT, JSON, PDF) OR generate test facts
+- Stage 1: Data preprocessing with before/after comparison
+- Stage 2: LLM extraction with confidence scoring
+- Stage 3: RMMVe + AAIC verification with Accept/Review/Reject decisions
+- Real-time module performance and cumulative confidence calculation
+- Automatic STKG integration for accepted facts
 
 #### 🔄 AAIC Monitoring Tab
 - Monitor CGR-CUSUM cumulative sums
@@ -139,6 +153,31 @@ The dashboard provides 6 interactive tabs:
 - Complete audit trail of all verifications
 - Performance trends and quality distribution
 - Early termination statistics
+
+### Quick Start Guide
+
+**For detailed usage instructions, see [`HOW_TO_USE.md`](HOW_TO_USE.md)**
+
+**Basic Workflow:**
+
+1. **Generate Test Fact** (Sidebar):
+   - Select domain (aerospace/healthcare/aviation/CAD)
+   - Select quality level (high/medium/low)
+   - Click "🎲 Generate Test Fact"
+
+2. **Run Verification** (Verification Process Tab):
+   - Stage 1: Click "▶️ Run Stage 1 Preprocessing"
+   - Stage 2: Click "▶️ Run Stage 2 LLM Extraction"
+   - Stage 3: Click "▶️ Run TruthFlow Verification"
+
+3. **View Results**:
+   - See decision (Accept/Review/Reject) in right column
+   - Check STKG Structure tab to see accepted facts added to knowledge graph
+
+**Or Upload Your Own Data:**
+- Stage 1: Upload TXT/JSON file → Configure domain → Run preprocessing
+- Stage 2: Extract facts from your data
+- Stage 3: Verify and integrate into STKG
 
 ### Command-Line Experiments
 
