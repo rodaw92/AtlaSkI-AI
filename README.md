@@ -8,6 +8,93 @@ ATLASky-AI is a domain-adaptable verification system for 4D Spatiotemporal Knowl
 - **ST-Inconsistency**: Violations of physical laws (spatial/temporal)
 - **Semantic Drift**: Facts that deviate from domain ontology
 
+---
+
+## Demo — See It In Action
+
+### Dashboard Overview
+
+<p align="center">
+  <img src="demo/dashboard_overview.png" alt="ATLASky-AI Dashboard" width="100%">
+</p>
+
+The interactive dashboard shows the STKG formalization **G = (V, E, O, T, Ψ)** with live knowledge graph metrics and physics-based consistency predicates:
+
+<p align="center">
+  <img src="demo/physics_predicates.png" alt="Physics Predicates ψ_s, ψ_t, Ψ" width="100%">
+</p>
+
+### Five-Module Verification Pipeline
+
+Each candidate fact passes through 5 modules sequentially (M₁→M₅), each computing dual metrics. Early termination occurs when cumulative confidence exceeds the global threshold.
+
+<p align="center">
+  <img src="demo/methodology_modules.png" alt="Five Verification Modules" width="100%">
+</p>
+
+### Verification Results — Accept vs. Reject
+
+The system classifies facts as **ST** (spatiotemporal) or **SEM** (semantic-only) and applies a three-way decision: **Accept** / **Review** / **Reject**.
+
+| Verification Result | Screenshot |
+|---|---|
+| TruthFlow output with module scores, cumulative confidence, and decision logic | <img src="demo/result_high_quality.png" alt="Verification Result" width="500"> |
+| Low-quality fact with invalid entity and timestamp correctly **REJECTED** | <img src="demo/result_low_quality.png" alt="Low Quality Rejected" width="500"> |
+
+### AAIC Adaptive Monitoring
+
+The Autonomous Adaptive Intelligence Cycle (AAIC) monitors module performance via CGR-CUSUM and adapts weights, thresholds, and alpha parameters when distribution shifts are detected.
+
+<p align="center">
+  <img src="demo/aaic_monitoring.png" alt="AAIC CGR-CUSUM Monitoring" width="100%">
+</p>
+
+### CLI Verification Demo
+
+Run `python3 test_verification_demo.py` to see all quality cases processed through the pipeline:
+
+```
+================================================================================
+  Test Case: HIGH_QUALITY
+================================================================================
+Candidate Fact Quality: high_quality
+Fact Type: ST
+Decision: ✅ ACCEPT
+Cumulative Confidence: 0.8333 (Threshold: 0.65)
+Early Termination: True — Terminated at Module: MAV
+
+Activated Modules: LOV, MAV
+Module Scores:
+  LOV: 0.7000 (threshold: 0.70) [✓]  Metric1: 1.0000 | Metric2: 0.0000
+  POV: 0.6100 (threshold: 0.70) [✗]  Metric1: 0.4000 | Metric2: 1.0000
+  MAV: 1.0000 (threshold: 0.65) [✓]  Metric1: 1.0000 | Metric2: 1.0000
+
+================================================================================
+  Test Case: LOW_QUALITY
+================================================================================
+Candidate Fact Quality: low_quality
+Fact Type: SEM
+Decision: ❌ REJECT
+Cumulative Confidence: 0.0000 (Threshold: 0.65)
+Early Termination: False
+
+Activated Modules: (none)
+Module Scores:
+  LOV: 0.5333 (threshold: 0.70) [✗]  Metric1: 0.3333 | Metric2: 1.0000
+  POV: 0.1300 (threshold: 0.70) [✗]  Metric1: 0.2000 | Metric2: 0.0000
+  MAV: 1.0000 (threshold: 0.65) [✓]  Metric1: 1.0000 | Metric2: 1.0000  ← neutral (SEM)
+  WSV: 0.3500 (threshold: 0.60) [✗]  Metric1: 0.0000 | Metric2: 1.0000
+  ESV: 0.5175 (threshold: 0.65) [✗]  Metric1: 0.7393 | Metric2: 0.0000
+```
+
+**What's happening:**
+
+- **HIGH_QUALITY** → Fact type **ST** (valid coordinates). LOV confirms structural compliance (Metric₁=1.0). MAV confirms physics consistency (ψ_s=1, ψ_t=1). Cumulative confidence 0.83 ≥ 0.65 → **ACCEPT** with early termination at M₃.
+
+- **LOW_QUALITY** → Fact type **SEM** (invalid timestamp `202X-12-5`). LOV detects unknown entity class (Metric₁=0.33). POV detects non-standard terminology and invalid tools (Metric₁=0.20). MAV neutral (SEM fact, physics N/A). WSV finds no corroboration. ESV detects statistical anomaly. No modules reach activation threshold → C=0.0 → **REJECT**.
+
+---
+
 ## System Architecture
 
 ### 4D STKG Formalization
