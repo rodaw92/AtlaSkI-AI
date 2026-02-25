@@ -280,18 +280,15 @@ Return JSON array of triples:
         has_timestamp = bool(spatiotemporal.get("timestamp_utc"))
         text_length = len(text.split())
         
-        # Honest confidence calculation
+        # Confidence mapping per methodology: high=1.0, medium=0.8, low=0.6
         if has_numbers and has_location and has_timestamp and text_length > 15:
-            llm_confidence = 0.9  # High confidence: complete information
+            llm_confidence = 1.0
             conf_level = "high"
         elif has_numbers and (has_location or has_timestamp) and text_length > 10:
-            llm_confidence = 0.8  # Medium confidence: some missing info
+            llm_confidence = 0.8
             conf_level = "medium"
-        elif has_numbers or text_length > 8:
-            llm_confidence = 0.6  # Low confidence: minimal information
-            conf_level = "low"
         else:
-            llm_confidence = 0.3  # Very low confidence: very poor quality
+            llm_confidence = 0.6
             conf_level = "low"
         
         # Aerospace domain extraction simulation

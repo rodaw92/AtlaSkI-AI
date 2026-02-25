@@ -177,7 +177,7 @@ def main():
             with st.spinner("Running 3-stage pipeline..."):
                 # Stage 1: Data Preprocessing
                 st.session_state.preprocessed_data = PREPROCESSOR.preprocess_multimodal_data(
-                    raw_docs=[{"text": raw_text, "domain": test_domain}]
+                    raw_docs=[{"text": raw_text, "domain": st.session_state.test_domain_selected}]
                 )
                 
                 # Stage 2: LLM Extraction
@@ -371,7 +371,7 @@ def main():
                     quality_levels = ["high_quality", "medium_quality", "low_quality"]
                     quality = random.choice(quality_levels)
                     # Use user-selected domain from sidebar
-                    domain = st.session_state.test_domain
+                    domain = st.session_state.get('test_domain_selected', st.session_state.get('selected_domain_for_generation', 'aerospace'))
                     
                     # Run through the 3-stage pipeline
                     # Stage 1: Generate raw text
@@ -427,22 +427,14 @@ def main():
                 # Add LLM confidence to results
                 verification_results["llm_confidence"] = llm_confidence
                 
-                # Implement three-way decision rule
-                total_confidence = verification_results["total_confidence"]
-                global_threshold = st.session_state.rmmve.global_threshold
-                epsilon = 0.1  # Review margin
-                
-                if total_confidence >= global_threshold:
-                    decision = "Accept"
-                    decision_color = "#10b981"
+                # Use engine's three-way decision (Accept/Review/Reject)
+                decision = verification_results.get("decision_label", "Reject")
+                decision_color = {"Accept": "#10b981", "Review": "#f59e0b", "Reject": "#ef4444"}.get(decision, "#ef4444")
+                if decision == "Accept":
                     accept_count += 1
-                elif total_confidence >= global_threshold - epsilon:
-                    decision = "Review"
-                    decision_color = "#f59e0b"
+                elif decision == "Review":
                     review_count += 1
                 else:
-                    decision = "Reject"
-                    decision_color = "#ef4444"
                     reject_count += 1
                 
                 verification_results["decision"] = decision
@@ -750,7 +742,7 @@ def main():
                         </p>
                     </div>
                     <p style="margin-top: 10px; font-size: 0.9rem;">
-                        <strong>Detected by:</strong> External Source Verification (ESV)
+                        <strong>Detected by:</strong> POV (terminology) &amp; WSV (external evidence)
                     </p>
                 </div>
                 """,
@@ -809,9 +801,19 @@ def main():
         st.markdown(
             """
             <div class="card">
-                <p style="margin-bottom: 15px;">
-                    ATLASky-AI uses five specialized verification modules that can terminate early
-                    when sufficient confidence is achieved, improving efficiency while maintaining accuracy.
+                <p style="margin-bottom: 10px;">
+                    Each module M<sub>i</sub> computes confidence through two complementary metrics (Eq. 7):
+                </p>
+                <div style="background-color: #eff6ff; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    <code style="font-size: 0.9rem;">
+                        S<sub>i</sub>(d<sub>k</sub>) = conf<sub>k</sub> × [α<sub>i</sub> · Metric₁<sup>(i)</sup> + (1−α<sub>i</sub>) · Metric₂<sup>(i)</sup>]
+                    </code>
+                </div>
+                <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">
+                    Modules execute sequentially M₁→M₂→M₃→M₄→M₅ by ascending cost.
+                    Early termination when cumulative confidence C ≥ Θ (global threshold).
+                    For <strong>ST facts</strong>, early termination is suspended until M₃ (MAV) executes.
+                    Critical module <strong>veto</strong>: if M₃ score &lt; τ<sub>veto</sub> on ST facts → immediate Reject.
                 </p>
             </div>
             """,
@@ -822,44 +824,49 @@ def main():
 
         modules_info = [
             {
-                "name": "LOV",
-                "full_name": "Local Ontology Verification",
+                "name": "M₁ (LOV)",
+                "full_name": "Lexical-Ontological Verification",
                 "color": "#3b82f6",
                 "targets": "Semantic Drift",
-                "metrics": ["Structural Compliance", "Attribute Compliance"],
-                "icon": "📚"
+                "metrics": ["Structural Compliance (Eq. 8)", "Attribute Compliance (Eq. 9)"],
+                "icon": "📚",
+                "cost": "5 ms"
             },
             {
-                "name": "POV",
-                "full_name": "Provenance-Aware Verification",
+                "name": "M₂ (POV)",
+                "full_name": "Protocol-Ontology Verification",
                 "color": "#10b981",
                 "targets": "Content Hallucination",
-                "metrics": ["Lineage Tracing", "Dependency Validation"],
-                "icon": "🔍"
+                "metrics": ["Standard Terminology Match (Eq. 10)", "Cross-Standard Consistency (Eq. 11)"],
+                "icon": "📋",
+                "cost": "15 ms"
             },
             {
-                "name": "MAV",
+                "name": "M₃ (MAV)",
                 "full_name": "Motion-Aware Verification",
                 "color": "#f59e0b",
                 "targets": "ST-Inconsistency",
-                "metrics": ["Temporal-Spatial Validity (ψ<sub>s</sub>, ψ<sub>t</sub>)", "Physical Feasibility"],
-                "icon": "⚡"
+                "metrics": ["Temporal-Spatial Validity ψ<sub>s</sub>, ψ<sub>t</sub> (Eq. 12)", "Physical Feasibility: min(Kinematic, Process) (Eq. 13-16)"],
+                "icon": "⚡",
+                "cost": "50 ms"
             },
             {
-                "name": "WSV",
-                "full_name": "Workflow State Verification",
+                "name": "M₄ (WSV)",
+                "full_name": "Web-Source Verification",
                 "color": "#8b5cf6",
                 "targets": "Content Hallucination",
-                "metrics": ["State Transition Validity", "Workflow Compliance"],
-                "icon": "🔄"
+                "metrics": ["Source Credibility (Eq. 17)", "Cross-Source Agreement (Eq. 18)"],
+                "icon": "🌐",
+                "cost": "120 ms"
             },
             {
-                "name": "ESV",
-                "full_name": "External Source Verification",
+                "name": "M₅ (ESV)",
+                "full_name": "Embedding Similarity Verification",
                 "color": "#ef4444",
-                "targets": "Content Hallucination",
-                "metrics": ["Source Authority", "Cross-Reference Validity"],
-                "icon": "🌐"
+                "targets": "Semantic Drift + Hallucination",
+                "metrics": ["K-NN Cosine Similarity (Eq. 19)", "Cluster Membership / GMM (Eq. 20)"],
+                "icon": "🔗",
+                "cost": "800 ms"
             }
         ]
 
@@ -883,10 +890,11 @@ def main():
                                 {module_info['targets']}
                             </p>
                         </div>
-                        <p style="margin: 0; font-size: 0.75rem;"><strong>Metrics:</strong></p>
+                        <p style="margin: 0; font-size: 0.75rem;"><strong>Dual Metrics:</strong></p>
                         <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.75rem;">
                             {''.join([f'<li>{metric}</li>' for metric in module_info['metrics']])}
                         </ul>
+                        <p style="margin: 5px 0 0 0; font-size: 0.7rem; color: #9ca3af;">Cost: {module_info.get('cost', 'N/A')}</p>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -901,25 +909,29 @@ def main():
             st.markdown(
                 """
                 <div class="card">
-                    <h4>CGR-CUSUM Performance Monitoring</h4>
+                    <h4>CGR-CUSUM Performance Monitoring (Eq. 24)</h4>
                     <p style="font-size: 0.9rem; margin-bottom: 10px;">
-                        AAIC uses the CGR-CUSUM algorithm to detect performance shifts in real-time:
+                        AAIC monitors each module's precision using weekly validation samples.
+                        CGR-CUSUM detects both abrupt drops and gradual degradation:
                     </p>
                     <div style="background-color: #eff6ff; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                         <code style="font-size: 0.85rem;">
-                            G<sub>i</sub>(n) = max(0, G<sub>i</sub>(n-1) + L<sub>i</sub>(n) - k)
+                            G<sub>i</sub>(n) = max(0, G<sub>i</sub>(n-1) + [p<sub>i</sub>(n) − μ<sub>0</sub> − k])
                         </code>
                     </div>
                     <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 10px;">
-                        When G<sub>i</sub>(n) > h, a performance shift is detected and parameters are updated.
+                        When G<sub>i</sub>(n) ≥ h, a performance shift is detected and parameters are adapted.
                     </p>
                     <ul style="font-size: 0.85rem;">
-                        <li><strong>h</strong>: Detection threshold (default: {h})</li>
-                        <li><strong>k</strong>: Allowance parameter (default: {k})</li>
-                        <li><strong>L<sub>i</sub>(n)</strong>: Log-likelihood ratio of performance</li>
+                        <li><strong>p<sub>i</sub>(n)</strong>: Observed precision at week n</li>
+                        <li><strong>μ<sub>0</sub></strong>: Baseline precision from initial deployment</li>
+                        <li><strong>k = 0.5σ</strong>: Allowable slack ({k:.3f})</li>
+                        <li><strong>h = 5σ</strong>: Alarm threshold ({h:.3f})</li>
+                        <li><strong>σ</strong>: Baseline std dev ({sigma:.3f})</li>
                     </ul>
                 </div>
-                """.format(h=st.session_state.aaic.h, k=st.session_state.aaic.k),
+                """.format(h=st.session_state.aaic.h, k=st.session_state.aaic.k,
+                          sigma=st.session_state.aaic.sigma),
                 unsafe_allow_html=True
             )
 
@@ -933,22 +945,22 @@ def main():
                     </p>
                     <div style="margin-bottom: 8px;">
                         <div style="background-color: #eff6ff; padding: 8px; border-radius: 5px;">
-                            <p style="margin: 0; font-size: 0.8rem;"><strong>Weight (w)</strong> - Equation 12:</p>
-                            <code style="font-size: 0.75rem;">w<sub>i</sub> ← w<sub>i</sub> × exp[-γ·G<sub>i</sub>(t)]</code>
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Weight (w)</strong> — Eq. 25:</p>
+                            <code style="font-size: 0.75rem;">w<sub>i</sub> ← w<sub>i</sub> × exp[−γ·G<sub>i</sub>(t)], renormalise</code>
                             <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">γ = {gamma}</p>
                         </div>
                     </div>
                     <div style="margin-bottom: 8px;">
                         <div style="background-color: #fef3c7; padding: 8px; border-radius: 5px;">
-                            <p style="margin: 0; font-size: 0.8rem;"><strong>Threshold (θ)</strong> - Equation 13:</p>
-                            <code style="font-size: 0.75rem;">θ<sub>i</sub> ← θ<sub>i</sub> + η·sign(FPR - FNR)</code>
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Threshold (θ)</strong> — Eq. 26:</p>
+                            <code style="font-size: 0.75rem;">θ<sub>i</sub> ← θ<sub>i</sub> + η·sign(FPR<sub>i</sub> − FNR<sub>i</sub>)</code>
                             <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">η = {eta}</p>
                         </div>
                     </div>
                     <div>
                         <div style="background-color: #f3e8ff; padding: 8px; border-radius: 5px;">
-                            <p style="margin: 0; font-size: 0.8rem;"><strong>Alpha (α)</strong> - Equation 14:</p>
-                            <code style="font-size: 0.75rem;">α<sub>i</sub> ← α<sub>i</sub> + η'·∂L<sub>i</sub>/∂α<sub>i</sub></code>
+                            <p style="margin: 0; font-size: 0.8rem;"><strong>Alpha (α)</strong> — Eq. 27:</p>
+                            <code style="font-size: 0.75rem;">α<sub>i</sub> ← α<sub>i</sub> + η'·∂L<sub>i</sub>/∂α<sub>i</sub>, clip [0,1]</code>
                             <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: #6b7280;">η' = {eta_prime}</p>
                         </div>
                     </div>
@@ -1819,9 +1831,9 @@ Integration into STKG:
                 fact_source = "Demo Generator"
                 
                 # Show demo fact with quality
-                llm_confidence = {"high_quality": 1.0, "medium_quality": 0.8, "spatial_issue": 0.6,
-                                "external_ref": 0.7, "semantic_issue": 0.5, "low_quality": 0.3}.get(
-                                    st.session_state.fact_quality, 0.5)
+                llm_confidence = {"high_quality": 1.0, "medium_quality": 0.8, "spatial_issue": 0.8,
+                                "external_ref": 0.8, "semantic_issue": 0.6, "low_quality": 0.6}.get(
+                                    st.session_state.fact_quality, 0.8)
                 confidence_level = "High" if llm_confidence >= 0.8 else "Medium" if llm_confidence >= 0.6 else "Low"
 
                 st.markdown(f"""
@@ -1877,21 +1889,9 @@ Integration into STKG:
                         # Add LLM confidence to results for proper weighting
                         verification_results["llm_confidence"] = llm_confidence
 
-                        # Implement proper three-way decision rule
-                        total_confidence = verification_results["total_confidence"]
-                        global_threshold = st.session_state.rmmve.global_threshold
-                        epsilon = 0.1  # Review margin
-
-                        if total_confidence >= global_threshold:
-                            decision = "Accept"
-                            decision_color = "#10b981"
-                        elif total_confidence >= global_threshold - epsilon:
-                            decision = "Review"
-                            decision_color = "#f59e0b"
-                        else:
-                            decision = "Reject"
-                            decision_color = "#ef4444"
-
+                        # Use engine's three-way decision (Accept/Review/Reject)
+                        decision = verification_results.get("decision_label", "Reject")
+                        decision_color = {"Accept": "#10b981", "Review": "#f59e0b", "Reject": "#ef4444"}.get(decision, "#ef4444")
                         verification_results["decision"] = decision
                         verification_results["decision_color"] = decision_color
 
@@ -2017,11 +2017,19 @@ Integration into STKG:
                     unsafe_allow_html=True
                 )
 
-                # Show LLM confidence
+                # Show LLM confidence and fact type
                 confidence_level = "High" if llm_confidence >= 0.8 else "Medium" if llm_confidence >= 0.6 else "Low"
+                fact_type = results.get("fact_type", "N/A")
+                fact_type_label = "Spatiotemporal (ST)" if fact_type == "ST" else "Semantic-only (SEM)" if fact_type == "SEM" else fact_type
+                fact_type_color = "#3b82f6" if fact_type == "ST" else "#8b5cf6"
                 st.markdown(f"""
-                <div style='background-color: #dbeafe; padding: 8px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3b82f6;'>
-                    <strong>LLM Confidence:</strong> {confidence_level} ({llm_confidence:.1f})
+                <div style='display: flex; gap: 10px; margin-bottom: 15px;'>
+                    <div style='flex: 1; background-color: #dbeafe; padding: 8px; border-radius: 6px; border-left: 4px solid #3b82f6;'>
+                        <strong>LLM Confidence:</strong> {confidence_level} ({llm_confidence:.1f})
+                    </div>
+                    <div style='flex: 1; background-color: {fact_type_color}15; padding: 8px; border-radius: 6px; border-left: 4px solid {fact_type_color};'>
+                        <strong>Fact Type:</strong> {fact_type_label}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -2089,13 +2097,19 @@ Integration into STKG:
                 
                 # Show RMMVe process details
                 activated_modules = results.get("activated_modules", [])
+                fact_type_display = results.get("fact_type", "N/A")
+                term_reason = "Early (C ≥ Θ)" if results.get("early_termination") else "Complete (all modules)"
+                # Check if veto was triggered (early termination at MAV with reject)
+                if results.get("early_termination") and results.get("early_termination_module") == "MAV" and decision == "Reject":
+                    term_reason = "Veto by MAV (S₃ < τ_veto)"
                 st.markdown(f"""
                 <div style='background-color: #f0f9ff; padding: 12px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #0ea5e9;'>
-                    <h4 style='margin: 0 0 8px 0; color: #0c4a6e;'>RMMVe Module Execution</h4>
+                    <h4 style='margin: 0 0 8px 0; color: #0c4a6e;'>RMMVe Module Execution (Algorithm 1)</h4>
                     <p style='margin: 0; font-size: 14px;'>
+                        <strong>Fact Type:</strong> {fact_type_display} {'(physics check active)' if fact_type_display == 'ST' else '(MAV neutral — physics N/A)'}<br>
                         <strong>Activated Modules:</strong> {', '.join(activated_modules) if activated_modules else 'None'}<br>
-                        <strong>Sequential Order:</strong> LOV → POV → MAV → WSV → ESV<br>
-                        <strong>Termination:</strong> {'Early (confidence ≥ threshold)' if results.get('early_termination') else 'Complete (all modules)'}
+                        <strong>Sequential Order:</strong> M₁(LOV) → M₂(POV) → M₃(MAV) → M₄(WSV) → M₅(ESV)<br>
+                        <strong>Termination:</strong> {term_reason}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)

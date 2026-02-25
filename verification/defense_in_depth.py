@@ -45,8 +45,8 @@ class DefenseInDepthAnalyzer:
                 name="LOV",
                 information_sources={"domain_ontology", "entity_classes", "relation_types"},
                 target_error_classes={"semantic_drift", "ontology_violation"},
-                backup_modules=["ESV"],  # ESV also detects semantic drift
-                computational_cost=1.0,  # Lowest cost
+                backup_modules=["ESV"],
+                computational_cost=5.0,      # 5 ms (Table 1)
                 typical_false_positive_rate=0.08,
                 typical_false_negative_rate=0.12
             ),
@@ -54,8 +54,8 @@ class DefenseInDepthAnalyzer:
                 name="POV",
                 information_sources={"industry_standards", "protocol_libraries", "terminology"},
                 target_error_classes={"content_hallucination", "standard_violation"},
-                backup_modules=["WSV"],  # WSV also validates terminology
-                computational_cost=1.5,
+                backup_modules=["WSV"],
+                computational_cost=15.0,     # 15 ms (Table 1)
                 typical_false_positive_rate=0.11,
                 typical_false_negative_rate=0.09
             ),
@@ -63,8 +63,8 @@ class DefenseInDepthAnalyzer:
                 name="MAV",
                 information_sources={"physics_models", "spatiotemporal_coords", "velocity_constraints"},
                 target_error_classes={"st_inconsistency", "physics_violation"},
-                backup_modules=[],  # No backup - unique physics checking
-                computational_cost=3.0,  # Higher due to multi-agent computation
+                backup_modules=[],
+                computational_cost=50.0,     # 50 ms (Table 1)
                 typical_false_positive_rate=0.03,
                 typical_false_negative_rate=0.05
             ),
@@ -72,8 +72,8 @@ class DefenseInDepthAnalyzer:
                 name="WSV",
                 information_sources={"web_sources", "external_databases", "authoritative_apis"},
                 target_error_classes={"content_hallucination", "external_contradiction"},
-                backup_modules=["POV"],  # POV also checks terminology
-                computational_cost=5.0,  # Highest due to external queries
+                backup_modules=["POV"],
+                computational_cost=120.0,    # 120 ms (Table 1)
                 typical_false_positive_rate=0.07,
                 typical_false_negative_rate=0.10
             ),
@@ -81,8 +81,8 @@ class DefenseInDepthAnalyzer:
                 name="ESV",
                 information_sources={"embedding_vectors", "historical_facts", "statistical_models"},
                 target_error_classes={"semantic_drift", "statistical_anomaly"},
-                backup_modules=["LOV"],  # LOV also detects drift
-                computational_cost=2.0,
+                backup_modules=["LOV"],
+                computational_cost=800.0,    # 800 ms (Table 1)
                 typical_false_positive_rate=0.05,
                 typical_false_negative_rate=0.08
             )

@@ -16,8 +16,11 @@ def print_header(title):
 
 def print_result(result, candidate_fact):
     """Print verification result in a readable format"""
+    label = result.get('decision_label', 'Accept' if result['decision'] else 'Reject')
+    icon = {'Accept': '✅', 'Review': '⚠️', 'Reject': '❌'}.get(label, '❓')
     print(f"\nCandidate Fact Quality: {result['fact_quality']}")
-    print(f"Decision: {'✅ ACCEPT' if result['decision'] else '❌ REJECT'}")
+    print(f"Fact Type: {result.get('fact_type', 'N/A')}")
+    print(f"Decision: {icon} {label.upper()}")
     print(f"Cumulative Confidence: {result['total_confidence']:.4f} (Threshold: 0.65)")
     print(f"Early Termination: {result['early_termination']}")
     if result['early_termination']:

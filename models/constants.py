@@ -58,8 +58,87 @@ V_MAX = {
 # Semantic drift threshold (from Definition 6)
 THETA_DRIFT = 0.15  # KL divergence threshold for detecting semantic drift
 
-# Review margin for three-way decision
+# Review margin for three-way decision (Equation 23)
 EPSILON_REVIEW = 0.1  # Uncertainty margin for borderline cases
+
+# Veto thresholds τ_veto per domain (severe physical violations)
+VETO_THRESHOLDS = {
+    "healthcare": 0.5,
+    "aerospace": 0.30,
+    "default": 0.35,
+}
+
+# Critical modules whose veto check applies to ST facts
+CRITICAL_MODULES = {"MAV"}
+
+# CGR-CUSUM parameters derived from σ (baseline precision std dev)
+CUSUM_SIGMA = 0.1        # Baseline standard deviation of module precision
+CUSUM_K = 0.5 * CUSUM_SIGMA   # Allowable slack k = 0.5σ
+CUSUM_H = 5.0 * CUSUM_SIGMA   # Alarm threshold h = 5σ
+
+# Module computational costs in milliseconds (Table 1)
+MODULE_COSTS_MS = {
+    "LOV": 5,
+    "POV": 15,
+    "MAV": 50,
+    "WSV": 120,
+    "ESV": 800,
+}
+
+# Minimum process durations (seconds) for MAV Process(d_k)
+MIN_PROCESS_DURATIONS = {
+    "aerospace": {
+        "engine_installation": 45 * 60,
+        "blade_inspection": 15 * 60,
+        "measurement": 5 * 60,
+        "default": 5 * 60,
+    },
+    "healthcare": {
+        "icu_discharge": 17 * 60,
+        "patient_transfer": 10 * 60,
+        "surgery_prep": 30 * 60,
+        "default": 10 * 60,
+    },
+    "default": {
+        "default": 5 * 60,
+    },
+}
+
+# Standard terminology sets for POV (Metric 1)
+STANDARD_TERMINOLOGIES = {
+    "aerospace": {
+        "entities": {
+            "Blade", "EngineSet", "InspectionMeasurement", "AerospaceEntity",
+            "TurbineBlade", "CompressorBlade", "FanBlade", "Assembly",
+        },
+        "relations": {
+            "containsBlade", "hasMeasurement", "locatedAt", "installedAt",
+            "isContainedBy",
+        },
+        "tools": {
+            "3D_Scanner_Unit", "CMM", "Laser_Tracker", "Coordinate_Measuring_Machine",
+            "Profilometer", "Surface_Roughness_Tester",
+        },
+        "features": {
+            "Blade Root", "Leading Edge", "Trailing Edge", "Blade Tip",
+            "Pressure Side", "Suction Side", "Clearance Gap", "Pitch Distance",
+        },
+        "standards": {"STEP AP242", "AS9100", "AMS", "ISO 10303", "ASTM"},
+    },
+    "healthcare": {
+        "entities": {
+            "Patient", "CareUnit", "ClinicalTransfer", "Medication",
+            "MICU", "SICU", "CCU", "OR", "Recovery", "Floor",
+        },
+        "relations": {
+            "transferred", "administeredTo", "performedAt", "locatedIn",
+            "admittedTo", "dischargedFrom",
+        },
+        "tools": set(),
+        "features": set(),
+        "standards": {"HL7 FHIR", "SNOMED CT", "ICD-10", "HIPAA", "LOINC"},
+    },
+}
 
 # Mapping of quality levels to colors for visualization
 QUALITY_COLOR_MAP = {

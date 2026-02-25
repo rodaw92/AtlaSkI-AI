@@ -22,183 +22,182 @@ ATLASky-AI operates on a formal 4D STKG defined as **G = (V, E, O, T, Ψ)** wher
 
 ### Physics-Based Predicates
 
-- **ψ_s (Spatial Consistency)**: Prevents co-location violations (same entity at two locations simultaneously)
-- **ψ_t (Temporal Consistency)**: Enforces velocity constraints (travel time must be physically feasible)
+- **ψ_s (Spatial Consistency)**: Prevents co-location violations — same entity cannot exist at two separated locations within the same time window
+- **ψ_t (Temporal Consistency)**: Enforces velocity and travel-time constraints — travel time must be physically feasible given distance and maximum velocity
 - **Ψ = ψ_s ∧ ψ_t**: Combined predicate ensuring full physical consistency
 
-### Five-Module Verification Pipeline
+### Three-Stage Pipeline
 
-The system implements the Ranked Multi-Modal Verification (RMMVe) process:
+1. **Stage 1 — Data Preprocessing**: Normalizes heterogeneous raw data RD into structured format RD' (OCR, spell correction, terminology standardization via ontology O, temporal alignment to UTC, spatial validation via facility maps)
+2. **Stage 2 — LLM-Based Extraction**: Generates candidate facts D = L(RD'; P) using domain-specialized prompts with confidence-weighted output d_k = ⟨s, r, o, T(d_k), conf_k⟩ where conf_k ∈ {high=1.0, medium=0.8, low=0.6}
+3. **Stage 3 — TruthFlow Verification**: Validates candidates through Ranked Multi-Modal Verification (RMMVe) with Autonomous Adaptive Intelligence Cycle (AAIC)
 
-1. **Local Ontology Verification (LOV)** - Targets Semantic Drift using structural and attribute compliance
-2. **Provenance-Aware Verification (POV)** - Targets Content Hallucination via lineage tracing
-3. **Motion-Aware Verification (MAV)** - Targets ST-Inconsistency using physics predicates (ψ_s, ψ_t, Ψ)
-4. **Workflow State Verification (WSV)** - Validates state transitions and workflow compliance
-5. **External Source Verification (ESV)** - Cross-references against authoritative sources
+### Five-Module Verification Pipeline (RMMVe)
+
+Each module M_i computes confidence through two complementary metrics:
+
+**S_i(d_k) = conf_k × [α_i · Metric₁ + (1−α_i) · Metric₂]**
+
+| Module | Full Name | Primary Target | Dual Metrics | Cost |
+|--------|-----------|----------------|--------------|------|
+| M₁ (LOV) | Lexical-Ontological Verification | Semantic Drift | Structural Compliance (Eq. 8) + Attribute Compliance (Eq. 9) | 5 ms |
+| M₂ (POV) | Protocol-Ontology Verification | Content Hallucination | Standard Terminology Match (Eq. 10) + Cross-Standard Consistency (Eq. 11) | 15 ms |
+| M₃ (MAV) | Motion-Aware Verification | ST-Inconsistency | Temporal-Spatial Validity ψ_s, ψ_t (Eq. 12) + Physical Feasibility min(Kinematic, Process) (Eq. 13-16) | 50 ms |
+| M₄ (WSV) | Web-Source Verification | Content Hallucination | Source Credibility (Eq. 17) + Cross-Source Agreement (Eq. 18) | 120 ms |
+| M₅ (ESV) | Embedding Similarity Verification | Semantic Drift + Hallucination | K-NN Cosine Similarity (Eq. 19) + Cluster Membership / GMM (Eq. 20) | 800 ms |
+
+**Key mechanisms:**
+
+- **Fact Type Classification**: Facts are classified as **ST** (spatiotemporal — has valid coordinates) or **SEM** (semantic-only). For SEM facts, MAV assigns neutral score S₃=1.0 (physics not applicable).
+- **Critical Module Veto**: For ST facts, if MAV score < τ_veto (healthcare: 0.5, aerospace: 0.30) → immediate Reject regardless of other modules.
+- **Early Termination**: When cumulative confidence C ≥ Θ (global threshold), remaining modules are skipped. For ST facts, early termination is suspended until M₃ has executed.
+- **Three-Way Decision** (Eq. 23): Accept if C ≥ Θ; Review if Θ−ε ≤ C < Θ (ε=0.1); Reject if C < Θ−ε.
 
 ### Autonomous Adaptive Intelligence Cycle (AAIC)
 
-AAIC continuously monitors module performance using the CGR-CUSUM algorithm and adaptively adjusts:
+AAIC monitors per-module precision via **CGR-CUSUM** (Eq. 24):
 
-- **Weights (w)**: Using exponential decay based on cumulative error
-- **Thresholds (θ)**: Using gradient ascent based on FPR-FNR balance
-- **Alpha (α)**: Using gradient ascent to optimize metric combination
+**G_i(n) = max(0, G_i(n-1) + [p_i(n) − μ_0 − k])**
+
+where k = 0.5σ (allowable slack), h = 5σ (alarm threshold). When G_i(n) ≥ h, three-level adaptation triggers:
+
+- **Weight** (Eq. 25): `w_i ← w_i × exp[−γ · G_i(t)]`, renormalise Σw_i = 1 (γ = 0.01)
+- **Threshold** (Eq. 26): `θ_i ← θ_i + η · sign(FPR_i − FNR_i)` (η = 0.05)
+- **Alpha** (Eq. 27): `α_i ← α_i + η' · ∂L_i/∂α_i`, clip [0,1] (η' = 0.02)
+
+### Defense-in-Depth Architecture
+
+The five-layer verification achieves robustness through three principles:
+
+1. **Independence**: Modules operate on distinct information sources (ontology, standards, physics, web, embeddings)
+2. **Complementarity**: Modules target different error classes — ontology-compliant fabrications evade M₁/M₃ but are caught by M₂/M₄
+3. **Redundancy**: Hallucination covered by both M₂ (terminology) and M₄ (external evidence); Drift covered by both M₁ (ontology) and M₅ (embeddings)
+
+### Domain Adaptation Protocol
+
+Deploying in new domains requires configuring five components:
+
+1. **Domain Ontology (O)**: Entity classes C, relation types R_o, attributes A (50–200 classes typical)
+2. **Industry Standards (M₂)**: STEP AP242 for aerospace, HL7 FHIR for healthcare, ISA-95 for manufacturing
+3. **Physical Constraints (M₃)**: Max velocities v_max, minimum process durations, facility geometry, veto threshold τ_veto
+4. **Source Credibility (M₄)**: Credibility weights w_cred per source type (government > manufacturer > academic > news)
+5. **Domain Embeddings (M₅)**: Sentence-transformers on ≥10K historical facts, quarterly retraining
 
 ## Key Features
 
-- **Multi-Domain Support** - Aerospace, Healthcare, Aviation, CAD/Engineering
-- **Physics-Based Verification** - Enforces spatial (ψ_s) and temporal (ψ_t) consistency using physical laws
-- **Three-Stage Pipeline** - Data Preprocessing → LLM Extraction → TruthFlow Verification
-- **Adaptive Intelligence** - AAIC automatically adjusts parameters based on performance monitoring
-- **Honest Verification** - No artificial score boosting, real quality assessment
-- **Automatic STKG Integration** - Accepted facts automatically added to knowledge graph
-- **Interactive Visualization** - Comprehensive dashboards with 6 tabs:
-  - 📚 Methodology - STKG formalization, physics predicates, error taxonomy
-  - 🗂️ STKG Structure - Knowledge graph visualization, domain examples, ontology browser
-  - 💠 Verification Process - Three-stage pipeline with upload/processing capabilities
-  - 🔄 AAIC Monitoring - CGR-CUSUM tracking and parameter shift detection
-  - 📊 Parameter Evolution - Weight, threshold, and alpha adaptation over time
-  - 📜 Verification History - Complete audit trail of all verifications
-- **Performance Metrics** - Precision, Recall, F1-Score, False Positive Rate (FPR)
+- **Multi-Domain Support** — Aerospace, Healthcare, Aviation, CAD/Engineering
+- **Physics-Based Verification** — Enforces ψ_s (bilocation) and ψ_t (velocity/travel-time) consistency
+- **Three-Stage Pipeline** — Data Preprocessing → LLM Extraction → TruthFlow Verification
+- **Adaptive Intelligence** — AAIC auto-adjusts w, θ, α via CGR-CUSUM monitoring
+- **Honest Verification** — Real ontology checking, real standard terminology matching, real embedding similarity
+- **ST/SEM Fact Classification** — Physics checks applied only to spatiotemporal facts
+- **Critical Module Veto** — MAV can immediately reject physically impossible ST facts
+- **Automatic STKG Integration** — Accepted facts added to knowledge graph
+- **Interactive Visualization** — 7 dashboard tabs:
+  - 📚 Methodology — STKG formalization, physics predicates, error taxonomy, five-module pipeline
+  - 🌐 Domain Configuration — Load/edit domain configs (ontology, standards, physics, credibility, embeddings)
+  - 🗂️ STKG Structure — Knowledge graph visualization, domain examples, ontology browser
+  - 💠 Verification Process — Three-stage pipeline with upload/processing capabilities
+  - 🔄 AAIC Monitoring — CGR-CUSUM tracking and parameter shift detection
+  - 📊 Parameter Evolution — Weight, threshold, and alpha adaptation over time
+  - 📜 Verification History — Complete audit trail of all verifications
 
 ## Getting Started
 
 ### Prerequisites
 
 - Python 3.8+
-- Streamlit
-- Pandas
-- Plotly
-- NumPy
-- Matplotlib
+- Dependencies listed in `requirements.txt`:
+  - `streamlit>=1.24.0`
+  - `pandas>=1.5.0`
+  - `numpy>=1.23.0`
+  - `matplotlib>=3.6.0`
+  - `plotly>=5.14.0`
+
+### Installation
+
+```bash
+pip install -r requirements.txt
+```
 
 ### Running the Application
 
 ```bash
-cd AtlaSkI-AI
 streamlit run app.py
 ```
 
-The dashboard will open at `http://localhost:8501`
+The dashboard opens at `http://localhost:8501`.
 
 ## Code Structure
 
-- `app.py` - Main Streamlit application with 6 interactive tabs
-- `models/` - Knowledge graph and ontology implementation
-  - `knowledge_graph.py` - 4D STKG with physics predicates
-  - `ontology.py` - Multi-domain ontology system (16 entity classes, 11 relationships)
-  - `constants.py` - Physical parameters and domain constants
-- `verification/` - Five verification modules (LOV, POV, MAV, WSV, ESV)
-  - `rmmve.py` - Ranked Multi-Modal Verification with early termination
-  - `modules.py` - All 5 modules with dual-metric implementation
-  - `base.py` - Base module with LLM confidence weighting
-- `aaic/` - Autonomous Adaptive Intelligence Cycle
-  - `aaic.py` - CGR-CUSUM monitoring and parameter adaptation
-- `data/` - Data processing and generation
-  - `preprocessing.py` - Stage 1: RD → RD' normalization
-  - `llm_extraction.py` - Stage 2: LLM extraction with prompts
-  - `quality_based_generator.py` - Honest test data generation
-- `experiments/` - Experimental evaluation
-  - `datasets/` - Generators (aerospace, aviation, CAD, healthcare)
-  - `metrics/` - Evaluation metrics (Precision, Recall, F1, FPR)
-- `visualization/` - UI components and Plotly charts
-- `utils/` - Utility functions and CSS styles
+```
+├── app.py                          # Main Streamlit application (7 tabs)
+├── requirements.txt                # Python dependencies
+├── models/
+│   ├── knowledge_graph.py          # 4D STKG with physics predicates (ψ_s, ψ_t, Ψ)
+│   ├── ontology.py                 # Multi-domain ontology (16 entity classes, 11 relationships)
+│   └── constants.py                # Physical params, veto thresholds, CUSUM params, standard terminologies
+├── verification/
+│   ├── rmmve.py                    # RMMVe: ST/SEM classification, veto, 3-way decision, early termination
+│   ├── modules.py                  # 5 modules (LOV, POV, MAV, WSV, ESV) with real dual-metric implementations
+│   ├── base.py                     # Base module: S_i = conf_k × [α·M1 + (1−α)·M2]
+│   ├── domain_adapter.py           # Domain adaptation (5-component configuration)
+│   └── defense_in_depth.py         # Defense-in-Depth analysis (independence, complementarity, redundancy)
+├── aaic/
+│   └── aaic.py                     # CGR-CUSUM monitoring, FPR/FNR threshold, loss-gradient alpha
+├── data/
+│   ├── preprocessing.py            # Stage 1: RD → RD' (OCR, spell correction, temporal alignment, spatial mapping)
+│   ├── llm_extraction.py           # Stage 2: D = L(RD'; P) with confidence {high:1.0, medium:0.8, low:0.6}
+│   ├── generators.py               # Test data with quality-specific issues (semantic, spatial, low)
+│   └── quality_based_generator.py  # Raw text generation for honest testing
+├── experiments/
+│   ├── run_experiments.py          # Full experiment runner across 4 domains
+│   ├── quick_demo.py               # Quick CLI demo
+│   ├── datasets/                   # Domain-specific dataset generators
+│   └── metrics/                    # Evaluation: Precision, Recall, F1, FPR
+├── visualization/                  # Plotly charts and Streamlit UI components
+├── utils/                          # CSS styles
+└── domains/                        # Domain configuration JSON files
+```
 
 ## Usage
 
 ### Interactive Dashboard
 
-Launch the Streamlit dashboard to explore ATLASky-AI:
-
 ```bash
 streamlit run app.py
 ```
 
-The dashboard provides 6 interactive tabs:
-
-#### 📚 Methodology Tab
-- Complete STKG formalization (G = (V, E, O, T, Ψ))
-- Physics predicates visualization (ψ_s, ψ_t, Ψ)
-- Error taxonomy (Content Hallucination, ST-Inconsistency, Semantic Drift)
-- Five-module pipeline explanation
-- AAIC adaptation mechanisms
-
-#### 🗂️ STKG Structure Tab
-- Knowledge graph visualization (V, E, O, T, Ψ)
-- Domain-specific STKG examples (aerospace, healthcare, aviation, CAD)
-- Live metrics (entities, relationships, accepted facts)
-- Recent STKG updates (last 5 accepted facts)
-- Ontology browser (entity classes, relationships, constraints, rules)
-
-#### 💠 Verification Process Tab
-- Three-stage pipeline: Preprocessing → LLM Extraction → TruthFlow Verification
-- Upload files (TXT, JSON, PDF) OR generate test facts
-- Stage 1: Data preprocessing with before/after comparison
-- Stage 2: LLM extraction with confidence scoring
-- Stage 3: RMMVe + AAIC verification with Accept/Review/Reject decisions
-- Real-time module performance and cumulative confidence calculation
-- Automatic STKG integration for accepted facts
-
-#### 🔄 AAIC Monitoring Tab
-- Monitor CGR-CUSUM cumulative sums
-- Track performance shifts in real-time
-- View parameter adjustment history
-
-#### 📊 Parameter Evolution Tab
-- Visualize weight, threshold, and alpha changes over time
-- Compare current vs. initial parameter values
-- Understand adaptation patterns
-
-#### 📜 Verification History Tab
-- Complete audit trail of all verifications
-- Performance trends and quality distribution
-- Early termination statistics
-
-### Quick Start Guide
-
-**For detailed usage instructions, see [`HOW_TO_USE.md`](HOW_TO_USE.md)**
-
 **Basic Workflow:**
 
-1. **Generate Test Fact** (Sidebar):
-   - Select domain (aerospace/healthcare/aviation/CAD)
-   - Select quality level (high/medium/low)
-   - Click "🎲 Generate Test Fact"
-
-2. **Run Verification** (Verification Process Tab):
-   - Stage 1: Click "▶️ Run Stage 1 Preprocessing"
-   - Stage 2: Click "▶️ Run Stage 2 LLM Extraction"
-   - Stage 3: Click "▶️ Run TruthFlow Verification"
-
-3. **View Results**:
-   - See decision (Accept/Review/Reject) in right column
-   - Check STKG Structure tab to see accepted facts added to knowledge graph
+1. **Generate Test Fact** (Sidebar): Select domain and quality level → Click "🎲 Generate Test Fact"
+2. **Run Verification** (Verification Process Tab): Stage 1 → Stage 2 → Stage 3
+3. **View Results**: Decision (Accept/Review/Reject), fact type (ST/SEM), module scores, cumulative confidence
 
 **Or Upload Your Own Data:**
 - Stage 1: Upload TXT/JSON file → Configure domain → Run preprocessing
-- Stage 2: Extract facts from your data
-- Stage 3: Verify and integrate into STKG
+- Stage 2: Extract facts with domain-specialized LLM prompts
+- Stage 3: Verify via RMMVe + AAIC and integrate accepted facts into STKG
 
-### Command-Line Experiments
-
-Run comprehensive experiments on different dataset types:
+### Command-Line Testing
 
 ```bash
-# Test on specific dataset
-python3 experiments/run_experiments.py --dataset manufacturing --num-facts 100
+# Verification pipeline demo (high, medium, spatial, low quality)
+python3 test_verification_demo.py
 
-# Test on all 4 dataset types
-python3 experiments/run_experiments.py --all --num-facts 100
-
-# Quick demo (works immediately)
+# Quick experiment demo with metrics
 python3 experiments/quick_demo.py
 
-# Detailed output
-python3 experiments/run_experiments.py --dataset aviation --detailed
+# Full experiments on specific or all datasets
+python3 experiments/run_experiments.py --dataset manufacturing --num-facts 100
+python3 experiments/run_experiments.py --all --num-facts 100
+
+# Domain adaptation test
+python3 test_domain_adaptation.py
 ```
 
-Results are saved to `experiments/results/` as JSON files with complete metrics and confusion matrices.
+Results are saved to `experiments/results/` as JSON with complete metrics and confusion matrices.
 
 ## License
 
-This project is for demonstration purposes only. 
+This project is for demonstration purposes only.

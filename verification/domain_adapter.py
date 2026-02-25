@@ -252,7 +252,7 @@ class DomainConfiguration:
         "ESV": 0.5
     })
     
-    global_threshold: float = 0.65  # Θ in Equation 1
+    global_threshold: float = 0.65  # Θ (global acceptance threshold)
     
     def validate(self) -> Tuple[bool, List[str]]:
         """Validate complete configuration."""
