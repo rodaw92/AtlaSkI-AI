@@ -176,8 +176,20 @@ def main():
             # Automatically run all 3 stages
             with st.spinner("Running 3-stage pipeline..."):
                 # Stage 1: Data Preprocessing
+                test_domain = st.session_state.test_domain_selected
+                default_locations = {"aerospace": "Bay 7", "healthcare": "MICU", "aviation": "Runway 24L", "cad": "Assembly Station 1"}
                 st.session_state.preprocessed_data = PREPROCESSOR.preprocess_multimodal_data(
-                    raw_docs=[{"text": raw_text, "domain": st.session_state.test_domain_selected}]
+                    raw_docs=[{
+                        "document_id": "test_fact_001",
+                        "domain": test_domain,
+                        "format": "text",
+                        "content": {"text": raw_text},
+                        "metadata": {
+                            "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "location": expected_attrs.get("location", default_locations.get(test_domain, "Bay 7")),
+                            "source_type": "test_generation",
+                        },
+                    }]
                 )
                 
                 # Stage 2: LLM Extraction

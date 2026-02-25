@@ -44,10 +44,10 @@ Each candidate fact passes through 5 modules sequentially (M₁→M₅), each co
 
 The system classifies facts as **ST** (spatiotemporal) or **SEM** (semantic-only) and applies a three-way decision: **Accept** / **Review** / **Reject**.
 
-| Verification Result | Screenshot |
+| Case | Screenshot |
 |---|---|
-| TruthFlow output with module scores, cumulative confidence, and decision logic | <img src="demo/result_high_quality.png" alt="Verification Result" width="500"> |
-| Low-quality fact with invalid entity and timestamp correctly **REJECTED** | <img src="demo/result_low_quality.png" alt="Low Quality Rejected" width="500"> |
+| **High quality → ACCEPT**: LLM Confidence 1.0, Fact Type ST, C=0.800 ≥ Θ=0.650, added to STKG | <img src="demo/result_high_quality.png" alt="High Quality Accepted" width="500"> |
+| **Low quality → REJECT**: Invalid entity + timestamp, Fact Type SEM, C=0.000 < Θ−ε, not added | <img src="demo/result_low_quality.png" alt="Low Quality Rejected" width="500"> |
 
 ### AAIC Adaptive Monitoring
 
