@@ -40,14 +40,95 @@ Each candidate fact passes through 5 modules sequentially (M₁→M₅), each co
   <img src="demo/methodology_modules.png" alt="Five Verification Modules" width="100%">
 </p>
 
-### Verification Results — Accept vs. Reject
+### How Verification Works — Step by Step
 
-The system classifies facts as **ST** (spatiotemporal) or **SEM** (semantic-only) and applies a three-way decision: **Accept** / **Review** / **Reject**.
+The system processes each fact through a **three-stage pipeline** (Preprocessing → LLM Extraction → TruthFlow Verification), then classifies it as **ST** (spatiotemporal — has valid coordinates and timestamp) or **SEM** (semantic-only — missing or invalid coordinates). The final decision is **Accept**, **Review**, or **Reject** based on cumulative module confidence vs. the global threshold Θ.
 
-| Case | Screenshot |
-|---|---|
-| **High quality → ACCEPT**: LLM Confidence 1.0, Fact Type ST, C=0.800 ≥ Θ=0.650, added to STKG | <img src="demo/result_high_quality.png" alt="High Quality Accepted" width="500"> |
-| **Low quality → REJECT**: Invalid entity + timestamp, Fact Type SEM, C=0.000 < Θ−ε, not added | <img src="demo/result_low_quality.png" alt="Low Quality Rejected" width="500"> |
+Below are two example cases showing exactly what the system checks and why a fact passes or fails.
+
+---
+
+#### ✅ Case 1: High-Quality Fact → ACCEPT
+
+**Input text:**
+> *"Installation completed in Bay 7. Blade Gamma measurement: 3.02 mm on leading edge. Tolerance check passed."*
+
+**Why this is high quality — what the system sees:**
+
+| Property | Value | Why it matters |
+|---|---|---|
+| Entity | `TurbineBlade_Gamma` | Valid entity — exists in ontology class `Blade` ✓ |
+| Relationship | `hasMeasurement` | Valid relationship — defined in ontology R_o ✓ |
+| Location | Bay 7 → (40.0, 20.0, 0.0) | Known facility location, mapped to real coordinates ✓ |
+| Timestamp | `2026-02-25T12:30:33Z` | Valid ISO 8601 UTC timestamp ✓ |
+| LLM Confidence | **High (1.0)** | Complete info: numbers + location + timestamp + detailed text |
+
+**How each module scores it:**
+
+| Module | Score | Threshold | Activated? | What it checked |
+|---|---|---|---|---|
+| M₁ (LOV) | 0.700 | 0.70 | ✅ Yes | Subject `Blade` ∈ ontology, relation `hasMeasurement` ∈ ontology, object `InspectionMeasurement` ∈ ontology → Metric₁ = 1.0 |
+| M₂ (POV) | 0.610 | 0.70 | ❌ No | Some terms match standards but not enough to exceed threshold |
+| M₃ (MAV) | 1.000 | 0.65 | ✅ Yes | ψ_s = 1 (no bilocation), ψ_t = 1 (travel time feasible), Kinematic OK, Process OK |
+
+**Result:** C = (0.700 × 0.25 + 1.000 × 0.20) / (0.25 + 0.20) = **0.800** ≥ Θ = 0.650 → **ACCEPT** ✅ (early termination at M₃, M₄ and M₅ skipped)
+
+<p align="center">
+  <img src="demo/result_high_quality.png" alt="High Quality Accepted" width="90%">
+</p>
+
+---
+
+#### ❌ Case 2: Low-Quality Fact → REJECT
+
+**Input text:**
+> *"Blade part inspected. Measured approximately 3.5. Seems okay."*
+
+**Why this is low quality — what the system sees:**
+
+| Property | Value | Why it fails |
+|---|---|---|
+| Entity | `Unknown_6959` | Not in ontology — unknown entity class ✗ |
+| Relationship | `linkedTo` / `contains` | Invalid — not defined in ontology R_o ✗ |
+| Inspection tool | `UnknownTool_123` | Fabricated — not in standard tool list ✗ |
+| Timestamp | `202X-12-5` | Unparseable — not valid ISO 8601 ✗ |
+| Location | Missing coordinate axis | Incomplete spatial data ✗ |
+| Fact Type | **SEM** (semantic-only) | Can't verify physics because coordinates are invalid |
+| LLM Confidence | **Low (0.6)** | Vague text, no precise numbers, no clear location |
+
+**How each module scores it:**
+
+| Module | Score | Threshold | Activated? | What it detected |
+|---|---|---|---|---|
+| M₁ (LOV) | 0.533 | 0.70 | ❌ No | `Unknown_6959` not in entity classes → Metric₁ = 0.33 (only 1 of 3 structural checks pass) |
+| M₂ (POV) | 0.130 | 0.70 | ❌ No | `linkedTo` not in standard terminology, `UnknownTool_123` not a recognized tool → Metric₁ = 0.20 |
+| M₃ (MAV) | 1.000 | 0.65 | ⬜ Neutral | SEM fact → physics N/A, neutral score does not count toward confidence |
+| M₄ (WSV) | 0.350 | 0.60 | ❌ No | No corroborating evidence found in knowledge graph → Metric₁ = 0.00 |
+| M₅ (ESV) | 0.518 | 0.65 | ❌ No | Low similarity to known facts → statistical outlier detected |
+
+**Result:** No modules activated → C = **0.000** < Θ − ε = 0.550 → **REJECT** ❌ (all 5 modules executed, none reached activation threshold)
+
+<p align="center">
+  <img src="demo/result_low_quality.png" alt="Low Quality Rejected" width="90%">
+</p>
+
+---
+
+#### Summary: What Makes a Fact Pass or Fail?
+
+| Check | High Quality (Accept) | Low Quality (Reject) |
+|---|---|---|
+| **Entity class** | Known (`Blade`, `EngineSet`) | Unknown (`Unknown_XXXX`) |
+| **Relationship type** | Valid (`hasMeasurement`, `containsBlade`) | Invalid (`linkedTo`, `contains`) |
+| **Timestamp** | Valid ISO 8601 (`2026-02-25T12:30:33Z`) | Unparseable (`202X-12-5`) |
+| **Coordinates** | Complete (x, y, z from facility map) | Missing or incomplete |
+| **Inspection tool** | Standard (`3D_Scanner_Unit`) | Fabricated (`UnknownTool_123`) |
+| **LLM confidence** | High (1.0) — precise text with all details | Low (0.6) — vague, missing info |
+| **Fact type** | ST (spatiotemporal) | SEM (semantic-only) |
+| **Physics check** | ψ_s = 1, ψ_t = 1 (consistent) | N/A (can't check without valid coordinates) |
+| **Decision** | **C = 0.80 ≥ 0.65 → Accept** | **C = 0.00 < 0.55 → Reject** |
+
+---
 
 ### AAIC Adaptive Monitoring
 
@@ -57,49 +138,9 @@ The Autonomous Adaptive Intelligence Cycle (AAIC) monitors module performance vi
   <img src="demo/aaic_monitoring.png" alt="AAIC CGR-CUSUM Monitoring" width="100%">
 </p>
 
-### CLI Verification Demo
+### CLI Demo
 
-Run `python3 test_verification_demo.py` to see all quality cases processed through the pipeline:
-
-```
-================================================================================
-  Test Case: HIGH_QUALITY
-================================================================================
-Candidate Fact Quality: high_quality
-Fact Type: ST
-Decision: ✅ ACCEPT
-Cumulative Confidence: 0.8333 (Threshold: 0.65)
-Early Termination: True — Terminated at Module: MAV
-
-Activated Modules: LOV, MAV
-Module Scores:
-  LOV: 0.7000 (threshold: 0.70) [✓]  Metric1: 1.0000 | Metric2: 0.0000
-  POV: 0.6100 (threshold: 0.70) [✗]  Metric1: 0.4000 | Metric2: 1.0000
-  MAV: 1.0000 (threshold: 0.65) [✓]  Metric1: 1.0000 | Metric2: 1.0000
-
-================================================================================
-  Test Case: LOW_QUALITY
-================================================================================
-Candidate Fact Quality: low_quality
-Fact Type: SEM
-Decision: ❌ REJECT
-Cumulative Confidence: 0.0000 (Threshold: 0.65)
-Early Termination: False
-
-Activated Modules: (none)
-Module Scores:
-  LOV: 0.5333 (threshold: 0.70) [✗]  Metric1: 0.3333 | Metric2: 1.0000
-  POV: 0.1300 (threshold: 0.70) [✗]  Metric1: 0.2000 | Metric2: 0.0000
-  MAV: 1.0000 (threshold: 0.65) [✓]  Metric1: 1.0000 | Metric2: 1.0000  ← neutral (SEM)
-  WSV: 0.3500 (threshold: 0.60) [✗]  Metric1: 0.0000 | Metric2: 1.0000
-  ESV: 0.5175 (threshold: 0.65) [✗]  Metric1: 0.7393 | Metric2: 0.0000
-```
-
-**What's happening:**
-
-- **HIGH_QUALITY** → Fact type **ST** (valid coordinates). LOV confirms structural compliance (Metric₁=1.0). MAV confirms physics consistency (ψ_s=1, ψ_t=1). Cumulative confidence 0.83 ≥ 0.65 → **ACCEPT** with early termination at M₃.
-
-- **LOW_QUALITY** → Fact type **SEM** (invalid timestamp `202X-12-5`). LOV detects unknown entity class (Metric₁=0.33). POV detects non-standard terminology and invalid tools (Metric₁=0.20). MAV neutral (SEM fact, physics N/A). WSV finds no corroboration. ESV detects statistical anomaly. No modules reach activation threshold → C=0.0 → **REJECT**.
+Run `python3 test_verification_demo.py` to see all quality cases (high, medium, spatial, low) processed through the verification pipeline from the command line.
 
 ---
 
