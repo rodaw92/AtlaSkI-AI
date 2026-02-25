@@ -14,11 +14,9 @@ ATLASky-AI is a domain-adaptable verification system for 4D Spatiotemporal Knowl
 
 ### Video Walkthrough
 
-https://github.com/user-attachments/assets/atlaskyai_demo.mp4
-
 https://github.com/rodaw92/AtlaSkI-AI/raw/main/demo/atlaskyai_demo.mp4
 
-> **[▶️ Click here to watch the full demo video](demo/atlaskyai_demo.mp4)** — Methodology overview → High-quality fact verification → Low-quality fact rejection → AAIC monitoring
+> **[▶️ Download/watch the full demo video](https://github.com/rodaw92/AtlaSkI-AI/raw/main/demo/atlaskyai_demo.mp4)** — Methodology overview → Fact verification → AAIC monitoring
 
 ---
 
